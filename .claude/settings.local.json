@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git config *)",
       "Bash(Remove-Item *)",
-      "Bash(./gradlew :TeamCode:compileDebugJavaWithJavac)"
+      "Bash(./gradlew :TeamCode:compileDebugJavaWithJavac)",
+      "Bash(./gradlew :TeamCode:assembleDebug)"
     ]
   }
 }

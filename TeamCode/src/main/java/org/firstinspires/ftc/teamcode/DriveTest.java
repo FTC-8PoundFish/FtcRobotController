@@ -166,6 +166,10 @@ public class DriveTest extends OpMode {
         } else {
             intake.setPower(1);
         }
+        // henry review my code
+        if (gamepad1.left_bumper){
+            intake.setPower(0);
+        }
 
         telemetry.update();
     }
