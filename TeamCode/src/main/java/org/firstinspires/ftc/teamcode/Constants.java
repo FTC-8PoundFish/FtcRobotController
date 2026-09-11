@@ -15,7 +15,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class Constants {
     public static FollowerConstants followerConstants =
             new FollowerConstants()
-                    .mass(8.3)
+                    .mass(7.89)
                     .forwardZeroPowerAcceleration(-30.76994149927475)
                     .lateralZeroPowerAcceleration(-49.244087541016555)
                     .translationalPIDFCoefficients(new PIDFCoefficients(0.04, 0, 0.00125, 0.024))
@@ -27,19 +27,17 @@ public class Constants {
                     .rightRearMotorName("rightBack")
                     .leftRearMotorName("leftBack")
                     .leftFrontMotorName("leftFront")
-                    .leftFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
+                    .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
                     .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
-                    .rightFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
-                    .rightRearMotorDirection(DcMotorSimple.Direction.REVERSE)
-                    .xVelocity(66.73178364911418)
-                    .yVelocity(56.74286513441191);
+                    .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
+                    .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD);
     // need velocity data from gamepad
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
     public static PinpointConstants localizerConstants =
             new PinpointConstants()
                     // distance needs to be changed later
-                    .forwardPodY(4.6259845)
-                    .strafePodX(8.1692913)
+                    .forwardPodY(2.25)
+                    .strafePodX(-1.5)
                     .distanceUnit(DistanceUnit.INCH)
                     .hardwareMapName("odo")
                     .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
@@ -49,6 +47,8 @@ public class Constants {
     // HEHSUTF THE HELL UP PEDRO YOU ARE NOT FUNNY STOP MAKING FUN OF ME I AM A HUMAN BEING WITH
     // FEELINGS AND YOU ARE A ROBOT WHO CAN'T FEEL ANYTHING SO STOP MAKING FUN OF ME PLEASE I AM
     // BEGGING YOU STOP IT NOW PLEASE
+
+    // ^ Jared ^
     public static Follower createFollower(HardwareMap hardwareMap) {
         return new FollowerBuilder(followerConstants, hardwareMap)
                 .pinpointLocalizer(localizerConstants)
