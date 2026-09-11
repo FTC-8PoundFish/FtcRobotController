@@ -29,7 +29,6 @@
 
 package org.firstinspires.ftc.teamcode;
 
-
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -51,7 +50,6 @@ public class DriveTest extends OpMode {
 
     private DcMotor frontRight, frontLeft, backRight, backLeft;
 
-
     @Override
     public void init() {
         // Initialize the hardware variables. Note that the strings used here as parameters
@@ -69,7 +67,6 @@ public class DriveTest extends OpMode {
         telemetry.update();
     }
 
-
     @Override
     public void loop() {
         // Mecanum drive is controlled with three axes: drive (front-and-back),
@@ -79,10 +76,10 @@ public class DriveTest extends OpMode {
         double turn = gamepad1.right_stick_x;
 
         double[] speeds = {
-                (drive + strafe + turn),
-                (drive - strafe - turn),
-                (drive - strafe + turn),
-                (drive + strafe - turn)
+            (drive + strafe + turn),
+            (drive - strafe - turn),
+            (drive - strafe + turn),
+            (drive + strafe - turn)
         };
 
         // Loop through all values in the speeds[] array and find the greatest
