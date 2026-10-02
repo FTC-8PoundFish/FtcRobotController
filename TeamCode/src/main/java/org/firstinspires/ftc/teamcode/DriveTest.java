@@ -29,9 +29,16 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 /*
  * This file contains a minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
@@ -49,6 +56,18 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 public class DriveTest extends OpMode {
 
     private DcMotor frontRight, frontLeft, backRight, backLeft;
+    private DcMotorEx launcher = null;
+    private DcMotor intake = null;
+    private CRServo leftIntakeServo = null;
+    private CRServo rightIntakeServo = null;
+    private CRServo windmillServo = null;
+    double intakePower;
+
+    private GoBildaPinpointDriver odo;
+
+    public final int LAUNCHER_TARGET_VELOCITY = 1750; //2678 RPM
+    public final int LAUNCHER_MIN_VELOCITY = 1700; //2571 RPM
+
 
     @Override
     public void init() {
@@ -59,9 +78,36 @@ public class DriveTest extends OpMode {
         frontLeft = hardwareMap.get(DcMotor.class, "leftFront");
         backRight = hardwareMap.get(DcMotor.class, "rightBack");
         backLeft = hardwareMap.get(DcMotor.class, "leftBack");
+        intake = hardwareMap.get(DcMotor.class, "intake");
+        odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
+        launcher = hardwareMap.get(DcMotorEx.class, "launcher");
+        windmillServo = hardwareMap.get(CRServo.class, "windmillServo");
+        leftIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
+        rightIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
+        intake.setZeroPowerBehavior(BRAKE);
 
-        backRight.setDirection(DcMotor.Direction.REVERSE);
-        frontLeft.setDirection(DcMotor.Direction.REVERSE);
+        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        leftIntakeServo.setPower(0);
+        rightIntakeServo.setPower(0);
+        windmillServo.setPower(0);
+        windmillServo.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        /*
+         * Setting zeroPowerBehavior to BRAKE enables a "brake mode". This causes the motor to
+         * slow down much faster when it is coasting. This creates a much more controllable
+         * drivetrain. As the robot stops much quicker.
+         */
+        frontRight.setZeroPowerBehavior(BRAKE);
+        frontLeft.setZeroPowerBehavior(BRAKE);
+        backLeft.setZeroPowerBehavior(BRAKE);
+        backRight.setZeroPowerBehavior(BRAKE);
+        intake.setZeroPowerBehavior(BRAKE);
+
+        launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -76,11 +122,18 @@ public class DriveTest extends OpMode {
         double turn = gamepad1.right_stick_x;
 
         double[] speeds = {
-            (drive + strafe + turn),
-            (drive - strafe - turn),
-            (drive - strafe + turn),
-            (drive + strafe - turn)
+                (drive + strafe + turn),
+                (drive - strafe - turn),
+                (drive - strafe + turn),
+                (drive + strafe - turn)
         };
+        launch();
+
+        intakePower = gamepad1.right_trigger - gamepad1.left_trigger;
+        intake.setPower(intakePower);
+        leftIntakeServo.setPower(intakePower);
+        rightIntakeServo.setPower(intakePower);
+
 
         // Loop through all values in the speeds[] array and find the greatest
         // *magnitude*.  Not the greatest velocity.
@@ -101,6 +154,7 @@ public class DriveTest extends OpMode {
         backLeft.setPower(speeds[2]);
         backRight.setPower(speeds[3]);
 
+
         telemetry.addData(
                 "Motors",
                 "frontLeft (%.2f), frontRight (%.2f), backLeft (%.2f), backRight (%.2f)",
@@ -110,5 +164,39 @@ public class DriveTest extends OpMode {
                 speeds[3]);
 
         telemetry.update();
+    }
+
+    void launch() {
+        /*
+         * Calling gamepad1.right_bumper returns a boolean which will be true if the bumper is
+         * held down, and false if it is not. Notably, this will continue to be true for every
+         * cycle of our code that the driver holds down that bumper.
+         * The first step of our launch() function is checking to see if the user is currently
+         * holding down the right gamepad. If they are, then we want to start spinning up the launcher.
+         * Otherwise, we start spinning the launcher down.
+         */
+        if (gamepad1.right_bumper) {
+            launcher.setVelocity(LAUNCHER_TARGET_VELOCITY);
+        } else {
+            launcher.setVelocity(0);
+        }
+
+        /*
+         * Here we ask if the driver is currently pressing the right bumper, AND the launcher is
+         * spinning fast enough to make a successful shot. If it is, then we will turn on the
+         * windmill servo to start feeding the elements into the launcher motor. We also
+         * add some power to the intake power. This can sometimes help dislodge stuck elements from
+         * inside the hopper.
+         */
+        if (gamepad1.right_bumper && launcher.getVelocity() > LAUNCHER_MIN_VELOCITY) {
+            windmillServo.setPower(1);
+            intakePower += 0.5;
+        } else {
+            if (gamepad1.left_bumper){
+                windmillServo.setPower(1);
+            }else{
+                windmillServo.setPower(0);
+            }
+        }
     }
 }
