@@ -65,8 +65,8 @@ public class DriveTest extends OpMode {
 
     private GoBildaPinpointDriver odo;
 
-    public final int LAUNCHER_TARGET_VELOCITY = 1750; //2678 RPM
-    public final int LAUNCHER_MIN_VELOCITY = 1700; //2571 RPM
+    public static int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
+    public static int LAUNCHER_MIN_VELOCITY = 1400; //2571 RPM
 
 
     @Override
@@ -110,6 +110,12 @@ public class DriveTest extends OpMode {
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
 
         telemetry.addData("Status", "Initialized");
+        telemetry.addData(
+                "Speed",
+                "target (%d), min (%d)",
+                LAUNCHER_TARGET_VELOCITY,
+                LAUNCHER_MIN_VELOCITY);
+
         telemetry.update();
     }
 
@@ -153,8 +159,6 @@ public class DriveTest extends OpMode {
         frontRight.setPower(speeds[1]);
         backLeft.setPower(speeds[2]);
         backRight.setPower(speeds[3]);
-
-
         telemetry.addData(
                 "Motors",
                 "frontLeft (%.2f), frontRight (%.2f), backLeft (%.2f), backRight (%.2f)",
@@ -162,7 +166,11 @@ public class DriveTest extends OpMode {
                 speeds[1],
                 speeds[2],
                 speeds[3]);
-
+        telemetry.addData(
+                "Speed",
+                "target (%d), min (%d)",
+                LAUNCHER_TARGET_VELOCITY,
+                LAUNCHER_MIN_VELOCITY);
         telemetry.update();
     }
 
@@ -188,13 +196,13 @@ public class DriveTest extends OpMode {
          * add some power to the intake power. This can sometimes help dislodge stuck elements from
          * inside the hopper.
          */
-        if (gamepad1.right_bumper && launcher.getVelocity() > LAUNCHER_MIN_VELOCITY) {
+        if (gamepad1.right_bumper && (launcher.getVelocity() > LAUNCHER_MIN_VELOCITY)) {
             windmillServo.setPower(1);
             intakePower += 0.5;
         } else {
-            if (gamepad1.left_bumper){
-                windmillServo.setPower(1);
-            }else{
+            if (gamepad1.left_bumper) {
+                windmillServo.setPower(-1);
+            } else {
                 windmillServo.setPower(0);
             }
         }
