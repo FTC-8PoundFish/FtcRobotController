@@ -40,6 +40,9 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+
 /*
  * This file contains a minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
  * the autonomous or the teleop period of an FTC match. The names of OpModes appear on the menu
@@ -106,6 +109,18 @@ public class DriveTest extends OpMode {
         backRight.setZeroPowerBehavior(BRAKE);
         intake.setZeroPowerBehavior(BRAKE);
 
+        odo.setOffsets(
+                0,
+                0,
+                DistanceUnit.INCH
+        );
+        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+        odo.setEncoderDirections(
+                GoBildaPinpointDriver.EncoderDirection.REVERSED,
+                GoBildaPinpointDriver.EncoderDirection.FORWARD
+        );
+        odo.resetPosAndIMU();
+
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
 
@@ -171,6 +186,18 @@ public class DriveTest extends OpMode {
                 "target (%d), min (%d)",
                 LAUNCHER_TARGET_VELOCITY,
                 LAUNCHER_MIN_VELOCITY);
+        odo.update();
+        Pose2D position = odo.getPosition();
+        telemetry.addData(
+                "Odo",
+                "x (%f): y (%f) posx %f posy %f encoderx %d encodery %d",
+                position.getX(DistanceUnit.INCH),
+                position.getY(DistanceUnit.INCH),
+                odo.getPosX(DistanceUnit.MM),
+                odo.getPosY(DistanceUnit.MM),
+                odo.getEncoderX(),
+                odo.getEncoderY()
+                );
         telemetry.update();
     }
 
