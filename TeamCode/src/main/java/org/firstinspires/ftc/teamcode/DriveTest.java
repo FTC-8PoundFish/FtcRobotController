@@ -31,6 +31,8 @@ package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
+import com.pedropathing.follower.Follower;
+import com.pedropathing.math.Pose;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -42,6 +44,8 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import com.pedropathing.drivetrain.DrivePowers;
+import com.pedropathing.follower.ManualDrive;
 
 /*
  * This file contains a minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
@@ -69,7 +73,10 @@ public class DriveTest extends OpMode {
     private GoBildaPinpointDriver odo;
 
     public static int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
-    public static int LAUNCHER_MIN_VELOCITY = 1400; //2571 RPM
+    public static int LAUNCHER_MIN_VELOCITY = 1400;
+
+    private Follower follower;
+    //2571 RPM
 
 
     @Override
@@ -88,6 +95,7 @@ public class DriveTest extends OpMode {
         leftIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
         rightIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
         intake.setZeroPowerBehavior(BRAKE);
+        follower = Constants.create(hardwareMap);
 
         frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -136,11 +144,20 @@ public class DriveTest extends OpMode {
 
     @Override
     public void loop() {
+        DrivePowers powers = ManualDrive.fieldCentric(
+                -gamepad1.left_stick_y,
+                gamepad1.left_stick_x,
+                gamepad1.right_stick_x,
+                follower.pose().heading()
+        );
         // Mecanum drive is controlled with three axes: drive (front-and-back),
         // strafe (left-and-right), and twist (rotating the whole chassis).
         double drive = -gamepad1.left_stick_y;
         double strafe = gamepad1.left_stick_x;
         double turn = gamepad1.right_stick_x;
+//        follower.manual(powers);
+        ManualDrive.driveOrHold(follower,powers);
+        follower.update();
 
         double[] speeds = {
                 (drive + strafe + turn),
@@ -148,6 +165,10 @@ public class DriveTest extends OpMode {
                 (drive - strafe + turn),
                 (drive + strafe - turn)
         };
+        Pose robotPose = follower.pose(); // returns a Pose object
+        telemetry.addData("Robot X", robotPose.x());
+        telemetry.addData("Robot Y", robotPose.y());
+        telemetry.addData("Robot Heading", Math.toDegrees(robotPose.heading()));
         launch();
 
         intakePower = gamepad1.right_trigger - gamepad1.left_trigger;
@@ -203,7 +224,7 @@ public class DriveTest extends OpMode {
 
     void launch() {
         /*
-         * Calling gamepad1.right_bumper returns a boolean which will be true if the bumper is
+         * Calling gamepad1.right_bumper returns a boolean whicfh will be true if the bumper is
          * held down, and false if it is not. Notably, this will continue to be true for every
          * cycle of our code that the driver holds down that bumper.
          * The first step of our launch() function is checking to see if the user is currently
