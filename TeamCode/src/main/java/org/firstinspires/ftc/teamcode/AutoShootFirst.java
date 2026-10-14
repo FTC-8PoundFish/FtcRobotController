@@ -20,6 +20,7 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
+import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 //@Autonomous
 @Autonomous(name = "AutoShootFirst", group = "OpMode")
@@ -30,7 +31,7 @@ public class AutoShootFirst extends OpMode {
     boolean launch_Done = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
-    private final Pose startPose = p.of(144, 84, 0);
+    private final Pose startPose = p.of(144, 100, 0);
     private final Pose gardenPose = p.of(0, 0, 0);
     private final Pose park = p.of(56, 34, 0);
 
@@ -90,12 +91,16 @@ public class AutoShootFirst extends OpMode {
         launcher = hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
+        intake = hardwareMap.get(DcMotor.class, "intake");
+        intake.setZeroPowerBehavior(BRAKE);
+
     }
 
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
         launcher.setVelocity(LAUNCHER_TARGET_VELOCITY);
+        intake.setPower(1);
     }
 
     @Override

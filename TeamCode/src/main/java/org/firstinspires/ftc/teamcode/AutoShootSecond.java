@@ -43,7 +43,7 @@ public class AutoShootSecond extends OpMode {
 
     private GoBildaPinpointDriver odo;
 
-    public static final int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
+    public static int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
     public static int LAUNCHER_MIN_VELOCITY = 1400;
 
     public static int Launcher_Velocity = 0;
@@ -90,6 +90,38 @@ public class AutoShootSecond extends OpMode {
         launcher = hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
+        telemetry.addData(
+                "Speed",
+                "target (%d), min (%d)",
+                LAUNCHER_TARGET_VELOCITY,
+                LAUNCHER_MIN_VELOCITY);
+        telemetry.update();
+        if (gamepad1.right_bumper) {
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < 500) {
+            }
+            LAUNCHER_TARGET_VELOCITY += 50;
+            LAUNCHER_MIN_VELOCITY += 50;
+            telemetry.addData(
+                    "Speed",
+                    "target (%d), min (%d) pressed (%b)",
+                    LAUNCHER_TARGET_VELOCITY,
+                    LAUNCHER_MIN_VELOCITY);
+            telemetry.update();
+        }
+        if (gamepad1.right_trigger_pressed) {
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < 500) {
+            }
+            LAUNCHER_TARGET_VELOCITY += 50;
+            LAUNCHER_MIN_VELOCITY += 50;
+            telemetry.addData(
+                    "Speed",
+                    "target (%d), min (%d) pressed (%b)",
+                    LAUNCHER_TARGET_VELOCITY,
+                    LAUNCHER_MIN_VELOCITY);
+            telemetry.update();
+        }
     }
 
     @Override
@@ -121,6 +153,7 @@ public class AutoShootSecond extends OpMode {
         }
 
         if (!launch_Done&& System.currentTimeMillis() - startTime > 10_000) {
+            intake.setPower(1);
             launcher.setVelocity(LAUNCHER_TARGET_VELOCITY);
             if (launcher.getVelocity() > LAUNCHER_MIN_VELOCITY) {
                 telemetry.addData("launch done", "launch_speed_reached");
