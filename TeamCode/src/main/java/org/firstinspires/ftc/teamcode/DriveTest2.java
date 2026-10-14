@@ -41,6 +41,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
@@ -60,7 +61,7 @@ import com.pedropathing.follower.ManualDrive;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 @TeleOp(name = "DriveTest2", group = "OpMode")
-public class PoseTeleopTest extends OpMode {
+public class DriveTest2 extends OpMode {
 
     private DcMotor frontRight, frontLeft, backRight, backLeft;
     private DcMotorEx launcher = null;
@@ -68,12 +69,17 @@ public class PoseTeleopTest extends OpMode {
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
     private CRServo windmillServo = null;
-    double intakePower;
+    boolean stopIntake = false;
+    private long timeNow;
 
     private GoBildaPinpointDriver odo;
 
     public static int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
     public static int LAUNCHER_MIN_VELOCITY = 1400; //2571 RPM
+    public static int WINDMILL_ON_MS = 250;
+    public static int WINDMILL_OFF_MS = 200;
+    private final ElapsedTime windmillTimer = new ElapsedTime();
+    private boolean windmillFeeding = false;
     private Follower follower;
 
 
@@ -97,8 +103,8 @@ public class PoseTeleopTest extends OpMode {
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
         launcher = hardwareMap.get(DcMotorEx.class, "launcher");
         windmillServo = hardwareMap.get(CRServo.class, "windmillServo");
-        leftIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
-        rightIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
+        leftIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
+        rightIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
         intake.setZeroPowerBehavior(BRAKE);
         follower = Constants.create(hardwareMap);
 
@@ -106,6 +112,8 @@ public class PoseTeleopTest extends OpMode {
         frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        rightIntakeServo.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftIntakeServo.setDirection(DcMotorSimple.Direction.REVERSE);
         leftIntakeServo.setPower(0);
         rightIntakeServo.setPower(0);
         windmillServo.setPower(0);
@@ -136,14 +144,38 @@ public class PoseTeleopTest extends OpMode {
 
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
-        telemetry.addData("Status", "Initialized");
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d)",
                 LAUNCHER_TARGET_VELOCITY,
                 LAUNCHER_MIN_VELOCITY);
-
         telemetry.update();
+        if (gamepad1.right_bumper) {
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < 500) {
+            }
+            LAUNCHER_TARGET_VELOCITY += 50;
+            LAUNCHER_MIN_VELOCITY += 50;
+            telemetry.addData(
+                    "Speed",
+                    "target (%d), min (%d)",
+                    LAUNCHER_TARGET_VELOCITY,
+                    LAUNCHER_MIN_VELOCITY);
+            telemetry.update();
+        }
+        if (gamepad1.right_trigger_pressed) {
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < 500) {
+            }
+            LAUNCHER_TARGET_VELOCITY += 50;
+            LAUNCHER_MIN_VELOCITY += 50;
+            telemetry.addData(
+                    "Speed",
+                    "target (%d), min (%d)",
+                    LAUNCHER_TARGET_VELOCITY,
+                    LAUNCHER_MIN_VELOCITY);
+            telemetry.update();
+        }
     }
 
     @Override
@@ -183,8 +215,15 @@ public class PoseTeleopTest extends OpMode {
             intake.setPower(-1);
             leftIntakeServo.setPower(-1);
             rightIntakeServo.setPower(-1);
+            stopIntake = true;
+        }
+        if (stopIntake&&!gamepad1.right_trigger_pressed){
+            leftIntakeServo.setPower(0);
+            rightIntakeServo.setPower(0);
+            intake.setPower(0);
         }
         if (gamepad1.left_trigger_pressed){
+            stopIntake = false;
             intake.setPower(1);
             leftIntakeServo.setPower(1);
             rightIntakeServo.setPower(1);
@@ -264,9 +303,16 @@ public class PoseTeleopTest extends OpMode {
          * inside the hopper.
          */
         if (gamepad1.right_bumper && (launcher.getVelocity() > LAUNCHER_MIN_VELOCITY)) {
-            windmillServo.setPower(1);
-            intakePower += 0.5;
+            // Pulse the windmill: spin WINDMILL_ON_MS, pause WINDMILL_OFF_MS, repeat.
+            // Non-blocking so loop() keeps running (drive, telemetry, etc.).
+            if (!windmillFeeding) {
+                windmillFeeding = true;
+                windmillTimer.reset();
+            }
+            double cycleMs = windmillTimer.milliseconds() % (WINDMILL_ON_MS + WINDMILL_OFF_MS);
+            windmillServo.setPower(cycleMs < WINDMILL_ON_MS ? 1 : 0);
         } else {
+            windmillFeeding = false;
             if (gamepad1.left_bumper) {
                 windmillServo.setPower(-1);
             } else {
