@@ -41,7 +41,6 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
@@ -76,11 +75,7 @@ public class DriveTest2 extends OpMode {
 
     public static int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
     public static int LAUNCHER_MIN_VELOCITY = 1400; //2571 RPM
-    public static int WINDMILL_ON_MS = 260;
-    public static int WINDMILL_REVERSE_MS = 60;
-    public static int WINDMILL_OFF_MS = 160;
-    private final ElapsedTime windmillTimer = new ElapsedTime();
-    private boolean windmillFeeding = false;
+    private WindmillFeeder windmillFeeder;
     private Follower follower;
 
 
@@ -119,6 +114,7 @@ public class DriveTest2 extends OpMode {
         rightIntakeServo.setPower(0);
         windmillServo.setPower(0);
         windmillServo.setDirection(DcMotorSimple.Direction.REVERSE);
+        windmillFeeder = new WindmillFeeder(windmillServo);
 
         /*
          * Setting zeroPowerBehavior to BRAKE enables a "brake mode". This causes the motor to
@@ -304,28 +300,12 @@ public class DriveTest2 extends OpMode {
          * inside the hopper.
          */
         if (gamepad1.right_bumper && (launcher.getVelocity() > LAUNCHER_MIN_VELOCITY)) {
-            // Pulse the windmill: spin WINDMILL_ON_MS, back off WINDMILL_REVERSE_MS to
-            // loosen any ball wedged in it, pause WINDMILL_OFF_MS, repeat.
-            // Non-blocking so loop() keeps running (drive, telemetry, etc.).
-            if (!windmillFeeding) {
-                windmillFeeding = true;
-                windmillTimer.reset();
-            }
-            double cycleMs = windmillTimer.milliseconds()
-                    % (WINDMILL_ON_MS + WINDMILL_REVERSE_MS + WINDMILL_OFF_MS);
-            if (cycleMs < WINDMILL_ON_MS) {
-                windmillServo.setPower(1);
-            } else if (cycleMs < WINDMILL_ON_MS + WINDMILL_REVERSE_MS) {
-                windmillServo.setPower(-1);
-            } else {
-                windmillServo.setPower(0);
-            }
+            windmillFeeder.feed();
         } else {
-            windmillFeeding = false;
             if (gamepad1.left_bumper) {
-                windmillServo.setPower(-1);
+                windmillFeeder.reverse();
             } else {
-                windmillServo.setPower(0);
+                windmillFeeder.stop();
             }
         }
     }

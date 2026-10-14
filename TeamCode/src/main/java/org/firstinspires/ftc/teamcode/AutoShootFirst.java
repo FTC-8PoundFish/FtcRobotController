@@ -46,6 +46,7 @@ public class AutoShootFirst extends OpMode {
 
     public static final int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
     public static int LAUNCHER_MIN_VELOCITY = 1400;
+    private WindmillFeeder windmillFeeder;
 
     public static int Launcher_Velocity = 0;
 
@@ -88,7 +89,8 @@ public class AutoShootFirst extends OpMode {
         windmillServo = hardwareMap.get(CRServo.class, "windmillServo");
         windmillServo.setDirection(DcMotorSimple.Direction.REVERSE);
         windmillServo.setPower(0);
-        launcher = hardwareMap.get(DcMotorEx.class, "launcher");
+        windmillFeeder = new WindmillFeeder(windmillServo);
+        launcher =hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
         intake = hardwareMap.get(DcMotor.class, "intake");
@@ -129,11 +131,11 @@ public class AutoShootFirst extends OpMode {
         if (!launch_Done) {
             if (launcher.getVelocity() > LAUNCHER_MIN_VELOCITY) {
                 telemetry.addData("launch done", "launch_speed_reached");
-                windmillServo.setPower(1);
+                windmillFeeder.feed();
                 intakePower += 0.5;
             } else {
                 telemetry.addData("launch done", "launch_speed_not_reached");
-                windmillServo.setPower(0);
+                windmillFeeder.stop();
             }
         }
         telemetry.update();
