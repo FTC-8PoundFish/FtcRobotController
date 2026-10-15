@@ -74,8 +74,6 @@ public class DriveTest2 extends OpMode {
 
     private GoBildaPinpointDriver odo;
 
-    public static int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
-    public static int LAUNCHER_MIN_VELOCITY = 1400; //2571 RPM
     private WindmillFeeder windmillFeeder;
     private Follower follower;
 
@@ -110,8 +108,9 @@ public class DriveTest2 extends OpMode {
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         backRight.setDirection(DcMotorSimple.Direction.FORWARD);
         rightIntakeServo.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftIntakeServo.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftIntakeServo.setDirection(DcMotorSimple.Direction.FORWARD);
         leftIntakeServo.setPower(0);
+
         rightIntakeServo.setPower(0);
         windmillServo.setPower(0);
         windmillServo.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -145,33 +144,33 @@ public class DriveTest2 extends OpMode {
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d)",
-                LAUNCHER_TARGET_VELOCITY,
-                LAUNCHER_MIN_VELOCITY);
+                Constants.LAUNCHER_TARGET_VELOCITY,
+                Constants.LAUNCHER_MIN_VELOCITY);
         telemetry.update();
         if (gamepad1.right_bumper) {
             long start = System.currentTimeMillis();
             while (System.currentTimeMillis() - start < 500) {
             }
-            LAUNCHER_TARGET_VELOCITY += 50;
-            LAUNCHER_MIN_VELOCITY += 50;
+            Constants.LAUNCHER_TARGET_VELOCITY += 50;
+            Constants.LAUNCHER_MIN_VELOCITY += 50;
             telemetry.addData(
                     "Speed",
                     "target (%d), min (%d)",
-                    LAUNCHER_TARGET_VELOCITY,
-                    LAUNCHER_MIN_VELOCITY);
+                    Constants.LAUNCHER_TARGET_VELOCITY,
+                    Constants.LAUNCHER_MIN_VELOCITY);
             telemetry.update();
         }
         if (gamepad1.right_trigger_pressed) {
             long start = System.currentTimeMillis();
             while (System.currentTimeMillis() - start < 500) {
             }
-            LAUNCHER_TARGET_VELOCITY += 50;
-            LAUNCHER_MIN_VELOCITY += 50;
+            Constants.LAUNCHER_TARGET_VELOCITY += 50;
+            Constants.LAUNCHER_MIN_VELOCITY += 50;
             telemetry.addData(
                     "Speed",
                     "target (%d), min (%d)",
-                    LAUNCHER_TARGET_VELOCITY,
-                    LAUNCHER_MIN_VELOCITY);
+                    Constants.LAUNCHER_TARGET_VELOCITY,
+                    Constants.LAUNCHER_MIN_VELOCITY);
             telemetry.update();
         }
     }
@@ -257,8 +256,8 @@ public class DriveTest2 extends OpMode {
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d)",
-                LAUNCHER_TARGET_VELOCITY,
-                LAUNCHER_MIN_VELOCITY);
+                Constants.LAUNCHER_TARGET_VELOCITY,
+                Constants.LAUNCHER_MIN_VELOCITY);
         odo.update();
         Pose2D position = odo.getPosition();
         telemetry.addData(
@@ -285,7 +284,7 @@ public class DriveTest2 extends OpMode {
          * Otherwise, we start spinning the launcher down.
          */
         if (gamepad1.right_bumper) {
-            launcher.setVelocity(LAUNCHER_TARGET_VELOCITY);
+            launcher.setVelocity(Constants.LAUNCHER_TARGET_VELOCITY);
             telemetry.addData("launcher get speed", "launcher get speed %f", launcher.getVelocity());
         } else {
             telemetry.addData("launcher stopped", "launcher stopped");
@@ -300,7 +299,7 @@ public class DriveTest2 extends OpMode {
          * add some power to the intake power. This can sometimes help dislodge stuck elements from
          * inside the hopper.
          */
-        if (gamepad1.right_bumper && (launcher.getVelocity() > LAUNCHER_MIN_VELOCITY)) {
+        if (gamepad1.right_bumper && (launcher.getVelocity() > Constants.LAUNCHER_MIN_VELOCITY)) {
             windmillFeeder.feed();
         } else {
             if (gamepad1.left_bumper) {

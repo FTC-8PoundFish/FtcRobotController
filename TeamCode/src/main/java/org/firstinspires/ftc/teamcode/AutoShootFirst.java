@@ -33,7 +33,7 @@ public class AutoShootFirst extends OpMode {
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 100, 0);
     private final Pose gardenPose = p.of(0, 0, 0);
-    private final Pose park = p.of(56, 34, 0);
+    private final Pose park = p.of(36, 30, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -44,8 +44,6 @@ public class AutoShootFirst extends OpMode {
 
     private GoBildaPinpointDriver odo;
 
-    public static final int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
-    public static int LAUNCHER_MIN_VELOCITY = 1400;
     private WindmillFeeder windmillFeeder;
 
     public static int Launcher_Velocity = 0;
@@ -101,7 +99,7 @@ public class AutoShootFirst extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
-        launcher.setVelocity(LAUNCHER_TARGET_VELOCITY);
+        launcher.setVelocity(Constants.LAUNCHER_TARGET_VELOCITY);
         intake.setPower(1);
     }
 
@@ -129,7 +127,7 @@ public class AutoShootFirst extends OpMode {
         }
 
         if (!launch_Done) {
-            if (launcher.getVelocity() > LAUNCHER_MIN_VELOCITY) {
+            if (launcher.getVelocity() > Constants.LAUNCHER_MIN_VELOCITY) {
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
                 intakePower += 0.5;

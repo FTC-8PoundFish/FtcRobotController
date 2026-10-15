@@ -31,6 +31,9 @@ package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
+import static org.firstinspires.ftc.teamcode.Constants.LAUNCHER_MIN_VELOCITY;
+import static org.firstinspires.ftc.teamcode.Constants.LAUNCHER_TARGET_VELOCITY;
+
 import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
@@ -71,9 +74,6 @@ public class DriveTest extends OpMode {
     double intakePower;
 
     private GoBildaPinpointDriver odo;
-
-    public static int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
-    public static int LAUNCHER_MIN_VELOCITY = 1400;
 
     private Follower follower;
     //2571 RPM

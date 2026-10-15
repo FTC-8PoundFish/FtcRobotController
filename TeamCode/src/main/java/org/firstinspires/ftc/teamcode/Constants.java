@@ -17,6 +17,10 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
+    // Launcher flywheel speeds shared by AutoShootFirst, AutoShootSecond and DriveTest2.
+    public static int LAUNCHER_TARGET_VELOCITY = 1475; //2678 RPM
+    public static int LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 40;
+
     public static MecanumConfig drivetrainConfig = new MecanumConfig(c -> {
         c.frontLeftName.set("leftFront");
         c.frontRightName.set("rightFront");
