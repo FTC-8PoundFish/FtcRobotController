@@ -98,32 +98,32 @@ public class AutoShootSecond extends OpMode {
                 LAUNCHER_TARGET_VELOCITY,
                 LAUNCHER_MIN_VELOCITY);
         telemetry.update();
-        if (gamepad1.right_bumper) {
-            long start = System.currentTimeMillis();
-            while (System.currentTimeMillis() - start < 500) {
-            }
-            LAUNCHER_TARGET_VELOCITY += 50;
-            LAUNCHER_MIN_VELOCITY += 50;
-            telemetry.addData(
-                    "Speed",
-                    "target (%d), min (%d)",
-                    LAUNCHER_TARGET_VELOCITY,
-                    LAUNCHER_MIN_VELOCITY);
-            telemetry.update();
-        }
-        if (gamepad1.right_trigger_pressed) {
-            long start = System.currentTimeMillis();
-            while (System.currentTimeMillis() - start < 500) {
-            }
-            LAUNCHER_TARGET_VELOCITY += 50;
-            LAUNCHER_MIN_VELOCITY += 50;
-            telemetry.addData(
-                    "Speed",
-                    "target (%d), min (%d)",
-                    LAUNCHER_TARGET_VELOCITY,
-                    LAUNCHER_MIN_VELOCITY);
-            telemetry.update();
-        }
+//        if (gamepad1.right_bumper) {
+//            long start = System.currentTimeMillis();
+//            while (System.currentTimeMillis() - start < 500) {
+//            }
+//            LAUNCHER_TARGET_VELOCITY += 50;
+//            LAUNCHER_MIN_VELOCITY += 50;
+//            telemetry.addData(
+//                    "Speed",
+//                    "target (%d), min (%d)",
+//                    LAUNCHER_TARGET_VELOCITY,
+//                    LAUNCHER_MIN_VELOCITY);
+//            telemetry.update();
+//        }
+//        if (gamepad1.right_trigger_pressed) {
+//            long start = System.currentTimeMillis();
+//            while (System.currentTimeMillis() - start < 500) {
+//            }
+//            LAUNCHER_TARGET_VELOCITY += 50;
+//            LAUNCHER_MIN_VELOCITY += 50;
+//            telemetry.addData(
+//                    "Speed",
+//                    "target (%d), min (%d)",
+//                    LAUNCHER_TARGET_VELOCITY,
+//                    LAUNCHER_MIN_VELOCITY);
+//            telemetry.update();
+//        }
     }
 
     @Override
