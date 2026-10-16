@@ -38,11 +38,13 @@ public abstract class AutoShootFirstBase extends OpMode {
     private long startTime;
 
     boolean launch_Done = false;
+    boolean stopped = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
-    private final Pose startPose = p.of(144, 30, 0);
+    private final Pose startPose = p.of(144, 40, 0);
     private final Pose gardenPose = p.of(0, 0, 0);
     private final Pose park = p.of(48, 0, 0);
+    private final Pose moveRight = p.of(48, 10, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -65,6 +67,11 @@ public abstract class AutoShootFirstBase extends OpMode {
     }
     private Path park() {
         return line(startPose, park).linear(startPose, park);
+    }
+    // Starts from wherever the robot is when it's called, since the park path may not have finished.
+    private Path toMoveRight() {
+        Pose current = follower.pose();
+        return line(current, moveRight).linear(current, moveRight);
     }
 
     private Command autoRoutine() {
@@ -130,6 +137,14 @@ public abstract class AutoShootFirstBase extends OpMode {
                 launch_Done = true;
                 telemetry.addData("launch done", "set launch done");
                 schedule(autoRoutine());
+            }
+            // Checked every loop (not just once above) so it actually fires at the 20s mark.
+            if (!stopped && System.currentTimeMillis() - startTime > 20_000) {
+                stopped = true;
+                Scheduler.reset();  // cancel whatever command is still running
+                follower.stop();    // and stop the drivetrain from following its path
+                schedule(follow(follower, toMoveRight()));
+                telemetry.addData("auto", "stopped at 20s, driving to moveRight");
             }
             return;
         }
