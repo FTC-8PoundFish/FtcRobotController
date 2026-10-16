@@ -18,9 +18,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
     // Launcher flywheel speeds shared by AutoShootFirst, AutoShootSecond and DriveTest.
-    // The DriveTest1450..1550 TeleOps set their own speeds via DriveTestBase.
-    public static int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
-    public static int LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 50;
+    // The DriveTest<target><gap> TeleOps (1150..1225 plus 1187 and 1212, gap 25 or 50) set their own speeds via DriveTestBase.
+    public static int LAUNCHER_TARGET_VELOCITY = 1180; //2678 RPM
+    public static int LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 20;
 
     public static MecanumConfig drivetrainConfig = new MecanumConfig(c -> {
         c.frontLeftName.set("leftFront");

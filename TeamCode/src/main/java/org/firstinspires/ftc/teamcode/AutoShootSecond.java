@@ -49,7 +49,6 @@ public class AutoShootSecond extends OpMode {
 
     //poses from before
     // other poses...
-    private final Pose controlPose = p.of(36, 60, 45);
     private Path startToGarden() {
 
         return line(startPose, gardenPose).linear(startPose, gardenPose);

@@ -15,9 +15,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  */
 public class WindmillFeeder {
 
-    public static int ON_MS = 260;
-    public static int REVERSE_MS = 60;
-    public static int OFF_MS = 160;
+    public static int ON_MS = 240;
+    public static int OFF_MS = 440; //160
 
     private final CRServo servo;
     private final ElapsedTime timer = new ElapsedTime();
@@ -32,11 +31,9 @@ public class WindmillFeeder {
             feeding = true;
             timer.reset();
         }
-        double cycleMs = timer.milliseconds() % (ON_MS + REVERSE_MS + OFF_MS);
+        double cycleMs = timer.milliseconds() % (ON_MS + OFF_MS);
         if (cycleMs < ON_MS) {
             servo.setPower(1);
-        } else if (cycleMs < ON_MS + REVERSE_MS) {
-            servo.setPower(-1);
         } else {
             servo.setPower(0);
         }

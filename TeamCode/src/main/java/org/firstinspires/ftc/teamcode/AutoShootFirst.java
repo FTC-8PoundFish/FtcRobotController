@@ -31,9 +31,9 @@ public class AutoShootFirst extends OpMode {
     boolean launch_Done = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
-    private final Pose startPose = p.of(144, 100, 0);
+    private final Pose startPose = p.of(144, 30, 0);
     private final Pose gardenPose = p.of(0, 0, 0);
-    private final Pose park = p.of(36, 30, 0);
+    private final Pose park = p.of(48, 0, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -50,7 +50,6 @@ public class AutoShootFirst extends OpMode {
 
     //poses from before
     // other poses...
-    private final Pose controlPose = p.of(36, 60, 45);
     private Path startToGarden() {
 
         return line(startPose, gardenPose).linear(startPose, gardenPose);
