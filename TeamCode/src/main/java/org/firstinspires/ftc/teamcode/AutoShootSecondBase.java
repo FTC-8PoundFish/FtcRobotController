@@ -19,6 +19,8 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
+import static com.pedropathing.ivy.commands.Commands.instant;
+import static com.pedropathing.ivy.commands.Commands.waitMs;
 
 /*
  * Shared Auto for the AutoShootSecond* OpModes. Each subclass picks the launcher target velocity
@@ -43,7 +45,7 @@ public abstract class AutoShootSecondBase extends OpMode {
     private final Pose gardenPose = p.of(0, 0, 0);
     private final Pose secondPose = p.of(130, 84, 0);
 
-    private final Pose park = p.of(130, 124, 0);
+    private final Pose park = p.of(130, 134, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -57,6 +59,9 @@ public abstract class AutoShootSecondBase extends OpMode {
     private WindmillFeeder windmillFeeder;
 
     public static int Launcher_Velocity = 0;
+
+    // Set by each step of autoRoutine() and shown every loop.
+    private String autoStage = "launching";
 
 
     //poses from before
@@ -75,9 +80,13 @@ public abstract class AutoShootSecondBase extends OpMode {
 
     private Command autoRoutine() {
         return sequential(
+                instant(() -> autoStage = "driving to secondPose"),
                 follow(follower, first()),
-                // Starts as soon as first() finishes.
-                follow(follower, Park())
+                instant(() -> autoStage = "at secondPose, waiting 2s"),
+                waitMs(2000),
+                instant(() -> autoStage = "parking"),
+                follow(follower, Park()),
+                instant(() -> autoStage = "parked")
         );
     }
 
@@ -154,6 +163,8 @@ public abstract class AutoShootSecondBase extends OpMode {
         telemetry.addData("Y", follower.pose().y());
         telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
         telemetry.addData("Follower Mode", follower.mode());
+        telemetry.addData("Auto stage", autoStage);
+        telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
 
         if (!launch_Done&& System.currentTimeMillis() - startTime > 10_000) {
             launcher.setVelocity(launcherTargetVelocity);
