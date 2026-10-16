@@ -58,7 +58,6 @@ public abstract class AutoShootSecondBase extends OpMode {
 
     public static int Launcher_Velocity = 0;
 
-    boolean seccond = false;
 
     //poses from before
     // other poses...
@@ -76,9 +75,9 @@ public abstract class AutoShootSecondBase extends OpMode {
 
     private Command autoRoutine() {
         return sequential(
-                follow(follower, first())
-                // Add mechanism commands here.
-//                follow(follower, park())
+                follow(follower, first()),
+                // Starts as soon as first() finishes.
+                follow(follower, Park())
         );
     }
 
@@ -173,15 +172,6 @@ public abstract class AutoShootSecondBase extends OpMode {
             windmillFeeder.stop();
             telemetry.addData("launch done", "set launch done");
             schedule(autoRoutine());
-        }
-
-        // No early return above, so this is still reached every loop after 17s.
-        if (!seccond && System.currentTimeMillis() - startTime > 23_000) {
-            Scheduler.reset();  // cancel whatever command is still running
-            follower.stop();    // and stop the drivetrain from following its path
-            schedule(follow(follower, Park()));
-            telemetry.addData("parking", "now");
-            seccond = true;
         }
 
         telemetry.update();
