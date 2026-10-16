@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import static com.qualcomm.robotcore.util.ElapsedTime.MILLIS_IN_NANO;
-
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -17,8 +15,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  */
 public class WindmillFeeder {
 
-    public static long ON_NANO = 240 * MILLIS_IN_NANO;
-    public static long OFF_NANO = 440 * MILLIS_IN_NANO; //160
+    public static long ON_MILLS = 240;
+    public static long OFF_MILLS = 440; //160
 
     private final CRServo servo;
     private final ElapsedTime timer = new ElapsedTime();
@@ -33,8 +31,8 @@ public class WindmillFeeder {
             feeding = true;
             timer.reset();
         }
-        double cycleNano = timer.nanoseconds() % (ON_NANO + OFF_NANO);
-        if (cycleNano < ON_NANO) {
+        double cycleNano = timer.milliseconds() % (ON_MILLS + OFF_MILLS);
+        if (cycleNano < ON_MILLS) {
             servo.setPower(1);
         } else {
             servo.setPower(0);

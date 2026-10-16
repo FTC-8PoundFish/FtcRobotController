@@ -45,7 +45,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import com.pedropathing.drivetrain.DrivePowers;
 import com.pedropathing.follower.ManualDrive;
-import com.qualcomm.robotcore.hardware.Servo;
 
 /*
  * This file contains a minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
