@@ -41,9 +41,9 @@ public abstract class AutoShootFirstBase extends OpMode {
     boolean stopped = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
-    private final Pose startPose = p.of(144, 60, 0);
+    private final Pose startPose = p.of(144, 55, 0);
     private final Pose gardenPose = p.of(0, 0, 0);
-    private final Pose park = p.of(48, 0, 0);
+    private final Pose park = p.of(48, 12, 0);
     private final Pose moveRight = p.of(48, 10, 0);
 
     private DcMotorEx launcher = null;

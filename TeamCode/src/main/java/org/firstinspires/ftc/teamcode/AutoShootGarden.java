@@ -31,10 +31,10 @@ public class AutoShootGarden extends OpMode {
     boolean stopped = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
-    private final Pose startPose = p.of(144, 40, 0);
-    private final Pose gardenPose = p.of(144, 0, 90);
-    private final Pose park = p.of(48, 0, 0);
-    private final Pose moveRight = p.of(48, 10, 0);
+    private final Pose startPose = p.of(144, 60, 0);
+    private final Pose seccondPose = p.of(144, 40, 0);
+    private final Pose park = p.of(56, 20, 0);
+    private final Pose moveRight = p.of(56, 10, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -51,12 +51,12 @@ public class AutoShootGarden extends OpMode {
 
     //poses from before
     // other poses...
-    private Path startToGarden() {
+    private Path startToSeccond() {
 
-        return line(startPose, gardenPose).linear(startPose, gardenPose);
+        return line(startPose, seccondPose).linear(startPose, seccondPose);
     }
     private Path park() {
-        return line(gardenPose, park).linear(gardenPose, park);
+        return line(seccondPose, park).linear(seccondPose, park);
     }
     // Starts from wherever the robot is when it's called, since the park path may not have finished.
     private Path toMoveRight() {
@@ -66,7 +66,7 @@ public class AutoShootGarden extends OpMode {
 
     private Command autoRoutine() {
         return sequential(
-                follow(follower, startToGarden())
+                follow(follower, startToSeccond())
                 // Add mechanism commands here.
 //                follow(follower, park())
         );
@@ -104,7 +104,7 @@ public class AutoShootGarden extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
-        launcher.setVelocity(1175);
+        launcher.setVelocity(1185);
         intake.setPower(1);
     }
 
@@ -131,18 +131,18 @@ public class AutoShootGarden extends OpMode {
                 schedule(autoRoutine());
             }
             // Checked every loop (not just once above) so it actually fires at the 20s mark.
-            if (!stopped && System.currentTimeMillis() - startTime > 15_000) {
+            if (!stopped && System.currentTimeMillis() - startTime > 13_000) {
                 stopped = true;
                 Scheduler.reset();  // cancel whatever command is still running
                 follower.stop();    // and stop the drivetrain from following its path
-                schedule(follow(follower, toMoveRight()));
+                schedule(follow(follower, park()));
                 telemetry.addData("auto", "stopped at 20s, driving to moveRight");
             }
             return;
         }
 
         if (!launch_Done) {
-            if (launcher.getVelocity() > 1150) {
+            if (launcher.getVelocity() > 1160) {
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
                 intakePower += 0.5;

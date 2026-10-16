@@ -41,6 +41,8 @@ public abstract class AutoShootSecondBase extends OpMode {
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 84, 0);
     private final Pose gardenPose = p.of(0, 0, 0);
+    private final Pose secondPose = p.of(130, 84, 0);
+
     private final Pose park = p.of(130, 124, 0);
 
     private DcMotorEx launcher = null;
@@ -56,19 +58,25 @@ public abstract class AutoShootSecondBase extends OpMode {
 
     public static int Launcher_Velocity = 0;
 
+    boolean seccond = false;
+
     //poses from before
     // other poses...
     private Path startToGarden() {
 
         return line(startPose, gardenPose).linear(startPose, gardenPose);
     }
-    private Path park() {
-        return line(startPose, park).linear(startPose, park);
+    private Path Park() {
+        return line(secondPose, park).linear(secondPose, park);
     }
+    private Path first() {
+        return line(startPose, secondPose).linear(startPose, secondPose);
+    }
+
 
     private Command autoRoutine() {
         return sequential(
-                follow(follower, park())
+                follow(follower, first())
                 // Add mechanism commands here.
 //                follow(follower, park())
         );
@@ -148,30 +156,34 @@ public abstract class AutoShootSecondBase extends OpMode {
         telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
         telemetry.addData("Follower Mode", follower.mode());
 
-        if (launch_Done || System.currentTimeMillis() - startTime > 20_000) {
-            launcher.setVelocity(0);
-            windmillServo.setPower(0);
-            launcher.setPower(0);
-            if (!launch_Done) {
-                launch_Done = true;
-                telemetry.addData("launch done", "set launch done");
-                schedule(autoRoutine());
-            }
-            return;
-        }
-
         if (!launch_Done&& System.currentTimeMillis() - startTime > 10_000) {
-            intake.setPower(1);
             launcher.setVelocity(launcherTargetVelocity);
             if (launcher.getVelocity() > launcherMinVelocity) {
-                telemetry.addData("launch done", "launch_speed_reached");
+                telemetry.addData("launch start", "launch_speed_reached");
                 windmillFeeder.feed();
-                intakePower += 0.5;
             } else {
-                telemetry.addData("launch done", "launch_speed_not_reached");
+                telemetry.addData("launch start", "launch_speed_not_reached");
                 windmillFeeder.stop();
             }
         }
+
+        if (!launch_Done && System.currentTimeMillis() - startTime > 17_000) {
+            launch_Done = true;
+            launcher.setVelocity(0);
+            windmillFeeder.stop();
+            telemetry.addData("launch done", "set launch done");
+            schedule(autoRoutine());
+        }
+
+        // No early return above, so this is still reached every loop after 17s.
+        if (!seccond && System.currentTimeMillis() - startTime > 23_000) {
+            Scheduler.reset();  // cancel whatever command is still running
+            follower.stop();    // and stop the drivetrain from following its path
+            schedule(follow(follower, Park()));
+            telemetry.addData("parking", "now");
+            seccond = true;
+        }
+
         telemetry.update();
     }
 }
