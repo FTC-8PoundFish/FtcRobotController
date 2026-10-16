@@ -17,7 +17,8 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
-    // Launcher flywheel speeds shared by AutoShootFirst, AutoShootSecond and DriveTest2.
+    // Launcher flywheel speeds shared by AutoShootFirst, AutoShootSecond and DriveTest.
+    // The DriveTest1450..1550 TeleOps set their own speeds via DriveTestBase.
     public static int LAUNCHER_TARGET_VELOCITY = 1450; //2678 RPM
     public static int LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 50;
 

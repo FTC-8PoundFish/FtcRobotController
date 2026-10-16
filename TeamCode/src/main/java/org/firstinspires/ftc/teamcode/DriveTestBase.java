@@ -35,7 +35,6 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -59,9 +58,20 @@ import com.qualcomm.robotcore.hardware.Servo;
  *
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
+ *
+ * Shared TeleOp for the DriveTest* OpModes. Each subclass only picks the launcher target
+ * velocity; the minimum (feed) velocity is always target - 50. The speeds are per-instance,
+ * so adjusting them here never changes Constants (which the AutoShoot* programs use).
  */
-@TeleOp(name = "DriveTest2", group = "OpMode")
-public class DriveTest2 extends OpMode {
+public abstract class DriveTestBase extends OpMode {
+
+    private int launcherTargetVelocity;
+    private int launcherMinVelocity;
+
+    protected DriveTestBase(int launcherTargetVelocity) {
+        this.launcherTargetVelocity = launcherTargetVelocity;
+        this.launcherMinVelocity = launcherTargetVelocity - 50;
+    }
 
     private DcMotor frontRight, frontLeft, backRight, backLeft;
     private DcMotorEx launcher = null;
@@ -144,33 +154,33 @@ public class DriveTest2 extends OpMode {
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d)",
-                Constants.LAUNCHER_TARGET_VELOCITY,
-                Constants.LAUNCHER_MIN_VELOCITY);
+                launcherTargetVelocity,
+                launcherMinVelocity);
         telemetry.update();
         if (gamepad1.right_bumper) {
             long start = System.currentTimeMillis();
             while (System.currentTimeMillis() - start < 500) {
             }
-            Constants.LAUNCHER_TARGET_VELOCITY += 50;
-            Constants.LAUNCHER_MIN_VELOCITY += 50;
+            launcherTargetVelocity += 50;
+            launcherMinVelocity += 50;
             telemetry.addData(
                     "Speed",
                     "target (%d), min (%d)",
-                    Constants.LAUNCHER_TARGET_VELOCITY,
-                    Constants.LAUNCHER_MIN_VELOCITY);
+                    launcherTargetVelocity,
+                    launcherMinVelocity);
             telemetry.update();
         }
         if (gamepad1.right_trigger_pressed) {
             long start = System.currentTimeMillis();
             while (System.currentTimeMillis() - start < 500) {
             }
-            Constants.LAUNCHER_TARGET_VELOCITY += 50;
-            Constants.LAUNCHER_MIN_VELOCITY += 50;
+            launcherTargetVelocity += 50;
+            launcherMinVelocity += 50;
             telemetry.addData(
                     "Speed",
                     "target (%d), min (%d)",
-                    Constants.LAUNCHER_TARGET_VELOCITY,
-                    Constants.LAUNCHER_MIN_VELOCITY);
+                    launcherTargetVelocity,
+                    launcherMinVelocity);
             telemetry.update();
         }
     }
@@ -256,8 +266,8 @@ public class DriveTest2 extends OpMode {
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d)",
-                Constants.LAUNCHER_TARGET_VELOCITY,
-                Constants.LAUNCHER_MIN_VELOCITY);
+                launcherTargetVelocity,
+                launcherMinVelocity);
         odo.update();
         Pose2D position = odo.getPosition();
         telemetry.addData(
@@ -284,7 +294,7 @@ public class DriveTest2 extends OpMode {
          * Otherwise, we start spinning the launcher down.
          */
         if (gamepad1.right_bumper) {
-            launcher.setVelocity(Constants.LAUNCHER_TARGET_VELOCITY);
+            launcher.setVelocity(launcherTargetVelocity);
             telemetry.addData("launcher get speed", "launcher get speed %f", launcher.getVelocity());
         } else {
             telemetry.addData("launcher stopped", "launcher stopped");
@@ -299,7 +309,7 @@ public class DriveTest2 extends OpMode {
          * add some power to the intake power. This can sometimes help dislodge stuck elements from
          * inside the hopper.
          */
-        if (gamepad1.right_bumper && (launcher.getVelocity() > Constants.LAUNCHER_MIN_VELOCITY)) {
+        if (gamepad1.right_bumper && (launcher.getVelocity() > launcherMinVelocity)) {
             windmillFeeder.feed();
         } else {
             if (gamepad1.left_bumper) {
