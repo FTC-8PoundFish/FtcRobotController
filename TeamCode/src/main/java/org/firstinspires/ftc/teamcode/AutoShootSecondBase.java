@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode;
 import com.pedropathing.follower.Follower;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.pedropathing.api.PoseFactory;
 import com.pedropathing.math.Pose;
@@ -20,20 +19,29 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
-import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
-//@Autonomous
-@Autonomous(name = "AutoShootFirst", group = "OpMode")
-public class AutoShootFirst extends OpMode {
+/*
+ * Shared Auto for the AutoShootSecond* OpModes. Each subclass picks the launcher target velocity
+ * and how far below it the minimum (feed) velocity sits.
+ */
+public abstract class AutoShootSecondBase extends OpMode {
+
+    private final int launcherTargetVelocity;
+    private final int launcherMinVelocity;
+
+    protected AutoShootSecondBase(int launcherTargetVelocity, int minVelocityGap) {
+        this.launcherTargetVelocity = launcherTargetVelocity;
+        this.launcherMinVelocity = launcherTargetVelocity - minVelocityGap;
+    }
 
     private long startTime;
 
     boolean launch_Done = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
-    private final Pose startPose = p.of(144, 30, 0);
+    private final Pose startPose = p.of(144, 84, 0);
     private final Pose gardenPose = p.of(0, 0, 0);
-    private final Pose park = p.of(48, 0, 0);
+    private final Pose park = p.of(130, 124, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -90,16 +98,43 @@ public class AutoShootFirst extends OpMode {
         launcher =hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
-        intake = hardwareMap.get(DcMotor.class, "intake");
-        intake.setZeroPowerBehavior(BRAKE);
-
+        telemetry.addData(
+                "Speed",
+                "target (%d), min (%d)",
+                launcherTargetVelocity,
+                launcherMinVelocity);
+        telemetry.update();
+//        if (gamepad1.right_bumper) {
+//            long start = System.currentTimeMillis();
+//            while (System.currentTimeMillis() - start < 500) {
+//            }
+//            launcherTargetVelocity += 50;
+//            launcherMinVelocity += 50;
+//            telemetry.addData(
+//                    "Speed",
+//                    "target (%d), min (%d)",
+//                    launcherTargetVelocity,
+//                    launcherMinVelocity);
+//            telemetry.update();
+//        }
+//        if (gamepad1.right_trigger_pressed) {
+//            long start = System.currentTimeMillis();
+//            while (System.currentTimeMillis() - start < 500) {
+//            }
+//            launcherTargetVelocity += 50;
+//            launcherMinVelocity += 50;
+//            telemetry.addData(
+//                    "Speed",
+//                    "target (%d), min (%d)",
+//                    launcherTargetVelocity,
+//                    launcherMinVelocity);
+//            telemetry.update();
+//        }
     }
 
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
-        launcher.setVelocity(Constants.LAUNCHER_TARGET_VELOCITY);
-        intake.setPower(1);
     }
 
     @Override
@@ -113,7 +148,7 @@ public class AutoShootFirst extends OpMode {
         telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
         telemetry.addData("Follower Mode", follower.mode());
 
-        if (launch_Done || System.currentTimeMillis() - startTime > 10_000) {
+        if (launch_Done || System.currentTimeMillis() - startTime > 20_000) {
             launcher.setVelocity(0);
             windmillServo.setPower(0);
             launcher.setPower(0);
@@ -125,8 +160,10 @@ public class AutoShootFirst extends OpMode {
             return;
         }
 
-        if (!launch_Done) {
-            if (launcher.getVelocity() > Constants.LAUNCHER_MIN_VELOCITY) {
+        if (!launch_Done&& System.currentTimeMillis() - startTime > 10_000) {
+            intake.setPower(1);
+            launcher.setVelocity(launcherTargetVelocity);
+            if (launcher.getVelocity() > launcherMinVelocity) {
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
                 intakePower += 0.5;
