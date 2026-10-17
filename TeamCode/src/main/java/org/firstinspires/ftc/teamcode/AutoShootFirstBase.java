@@ -25,7 +25,7 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 /*
  * Shared Auto for the AutoShootFirst* OpModes. Each subclass picks the launcher target velocity;
- * the minimum (feed) velocity is always target - 15.
+ * the minimum (feed) velocity is always target - 20.
  */
 public abstract class AutoShootFirstBase extends OpMode {
 
@@ -34,7 +34,7 @@ public abstract class AutoShootFirstBase extends OpMode {
 
     protected AutoShootFirstBase(int launcherTargetVelocity) {
         this.launcherTargetVelocity = launcherTargetVelocity;
-        this.launcherMinVelocity = launcherTargetVelocity - 15;
+        this.launcherMinVelocity = launcherTargetVelocity - 20;
     }
 
     private long startTime;
@@ -44,7 +44,9 @@ public abstract class AutoShootFirstBase extends OpMode {
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 60, 0);
 
-    private final Pose shootPose = p.of(140, 60, 0);
+    // move forward for 6 inches to shoot
+    private static final int forward = 8;
+    private final Pose shootPose = p.of(144 - forward, 60, 0);
 
     private final Pose seccondPose = p.of(124, 40, 0);
     private final Pose park = p.of(56, 20, 0);

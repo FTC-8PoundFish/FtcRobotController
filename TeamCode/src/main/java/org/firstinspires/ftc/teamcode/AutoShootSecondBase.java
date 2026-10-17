@@ -38,14 +38,14 @@ public abstract class AutoShootSecondBase extends OpMode {
 
     private long startTime;
 
-    boolean launch_Done = false;
+    private boolean launching = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 84, 0);
-    private final Pose gardenPose = p.of(0, 0, 0);
-    private final Pose secondPose = p.of(130, 84, 0);
-
-    private final Pose park = p.of(130, 134, 0);
+    // move forward this many inches to shoot (same as AutoShootFirstBase)
+    private static final int forward = 8;
+    private final Pose shootPose = p.of(144 - forward, 84, 0);
+    private final Pose park = p.of(130, 138, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -61,30 +61,36 @@ public abstract class AutoShootSecondBase extends OpMode {
     public static int Launcher_Velocity = 0;
 
     // Set by each step of autoRoutine() and shown every loop.
-    private String autoStage = "launching";
+    private String autoStage = "waiting for start";
 
 
-    //poses from before
-    // other poses...
-    private Path startToGarden() {
-
-        return line(startPose, gardenPose).linear(startPose, gardenPose);
+    private Path startToShoot() {
+        return line(startPose, shootPose).linear(startPose, shootPose);
     }
     private Path Park() {
-        return line(secondPose, park).linear(secondPose, park);
-    }
-    private Path first() {
-        return line(startPose, secondPose).linear(startPose, secondPose);
+        return line(shootPose, park).linear(shootPose, park);
     }
 
 
+    // The whole auto. Each step starts as soon as the previous one finishes.
     private Command autoRoutine() {
         return sequential(
-                instant(() -> autoStage = "driving to secondPose"),
-                follow(follower, first()),
-                instant(() -> autoStage = "at secondPose, waiting 2s"),
-                waitMs(2000),
-                instant(() -> autoStage = "parking"),
+                instant(() -> autoStage = "waiting until 10s"),
+                waitMs(10_000),
+                instant(() -> autoStage = "driving to shootPose"),
+                follow(follower, startToShoot()),
+                instant(() -> {
+                    autoStage = "launching";
+                    launcher.setVelocity(launcherTargetVelocity);
+                    launching = true;  // loop() feeds the windmill while this is true
+                }),
+                waitMs(10_000),
+                instant(() -> {
+                    launching = false;
+                    launcher.setVelocity(0);
+                    windmillFeeder.stop();
+                    autoStage = "parking";
+                }),
                 follow(follower, Park()),
                 instant(() -> autoStage = "parked")
         );
@@ -151,6 +157,7 @@ public abstract class AutoShootSecondBase extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
+        schedule(autoRoutine());
     }
 
     @Override
@@ -166,8 +173,7 @@ public abstract class AutoShootSecondBase extends OpMode {
         telemetry.addData("Auto stage", autoStage);
         telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
 
-        if (!launch_Done&& System.currentTimeMillis() - startTime > 10_000) {
-            launcher.setVelocity(launcherTargetVelocity);
+        if (launching) {
             if (launcher.getVelocity() > launcherMinVelocity) {
                 telemetry.addData("launch start", "launch_speed_reached");
                 windmillFeeder.feed();
@@ -175,14 +181,6 @@ public abstract class AutoShootSecondBase extends OpMode {
                 telemetry.addData("launch start", "launch_speed_not_reached");
                 windmillFeeder.stop();
             }
-        }
-
-        if (!launch_Done && System.currentTimeMillis() - startTime > 17_000) {
-            launch_Done = true;
-            launcher.setVelocity(0);
-            windmillFeeder.stop();
-            telemetry.addData("launch done", "set launch done");
-            schedule(autoRoutine());
         }
 
         telemetry.update();
