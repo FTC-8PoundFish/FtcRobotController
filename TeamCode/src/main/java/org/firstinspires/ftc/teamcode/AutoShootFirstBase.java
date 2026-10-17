@@ -44,7 +44,7 @@ public abstract class AutoShootFirstBase extends OpMode {
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 60, 0);
 
-    // move forward for 6 inches to shoot
+    // move forward for 4 inches to shoot
     private static final int forward = 4;
     private final Pose shootPose = p.of(144 - forward, 60, 0);
 
