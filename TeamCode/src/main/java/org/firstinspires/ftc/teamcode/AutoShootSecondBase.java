@@ -43,7 +43,7 @@ public abstract class AutoShootSecondBase extends OpMode {
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 84, 0);
     // move forward this many inches to shoot (same as AutoShootFirstBase)
-    private static final int forward = 8;
+    private static final int forward = 4;
     private final Pose shootPose = p.of(144 - forward, 84, 0);
     private final Pose park = p.of(130, 138, 0);
 
