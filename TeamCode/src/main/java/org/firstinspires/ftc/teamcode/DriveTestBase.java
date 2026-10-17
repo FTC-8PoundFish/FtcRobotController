@@ -58,18 +58,18 @@ import com.pedropathing.follower.ManualDrive;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  *
- * Shared TeleOp for the DriveTest* OpModes. Each subclass picks the launcher target velocity
- * and how far below it the minimum (feed) velocity sits. The speeds are per-instance, so
- * adjusting them here never changes Constants (which the AutoShoot* programs use).
+ * Shared TeleOp for the DriveTest* OpModes. Each subclass picks the launcher target velocity;
+ * the minimum (feed) velocity is always target - 25. The speeds are per-instance, so
+ * adjusting them here never changes Constants.
  */
 public abstract class DriveTestBase extends OpMode {
 
     private int launcherTargetVelocity;
     private int launcherMinVelocity;
 
-    protected DriveTestBase(int launcherTargetVelocity, int minVelocityGap) {
+    protected DriveTestBase(int launcherTargetVelocity) {
         this.launcherTargetVelocity = launcherTargetVelocity;
-        this.launcherMinVelocity = launcherTargetVelocity - minVelocityGap;
+        this.launcherMinVelocity = launcherTargetVelocity - 25;
     }
 
     private DcMotor frontRight, frontLeft, backRight, backLeft;
