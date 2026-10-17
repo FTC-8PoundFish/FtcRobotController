@@ -39,10 +39,13 @@ public abstract class AutoShootFirstBase extends OpMode {
 
     private long startTime;
 
-    boolean launch_Done = false;
+    private boolean launching = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 60, 0);
+
+    private final Pose shootPose = p.of(140, 60, 0);
+
     private final Pose seccondPose = p.of(124, 40, 0);
     private final Pose park = p.of(56, 20, 0);
 
@@ -60,22 +63,40 @@ public abstract class AutoShootFirstBase extends OpMode {
     public static int Launcher_Velocity = 0;
 
     // Set by each step of autoRoutine() and shown every loop.
-    private String autoStage = "launching";
+    private String autoStage = "waiting for start";
 
     //poses from before
     // other poses...
-    private Path startToSeccond() {
-        return line(startPose, seccondPose).linear(startPose, seccondPose);
+    private Path startToShoot() {
+        return line(startPose, shootPose).linear(startPose, shootPose);
+    }
+    private Path shootToSeccond() {
+        return line(shootPose, seccondPose).linear(shootPose, seccondPose);
     }
     private Path park() {
         return line(seccondPose, park).linear(seccondPose, park);
     }
 
-    // Each step starts as soon as the previous one finishes.
+    // The whole auto. Each step starts as soon as the previous one finishes.
     private Command autoRoutine() {
         return sequential(
-                instant(() -> autoStage = "driving to seccondPose"),
-                follow(follower, startToSeccond()),
+                instant(() -> autoStage = "driving to shootPose"),
+                follow(follower, startToShoot()),
+                instant(() -> {
+                    autoStage = "launching";
+                    launcher.setVelocity(launcherTargetVelocity);
+                    intake.setPower(1);
+                    launching = true;  // loop() feeds the windmill while this is true
+                }),
+                waitMs(10_000),
+                instant(() -> {
+                    launching = false;
+                    launcher.setVelocity(0);
+                    windmillFeeder.stop();
+                    intake.setPower(0);
+                    autoStage = "driving to seccondPose";
+                }),
+                follow(follower, shootToSeccond()),
                 instant(() -> autoStage = "at seccondPose, waiting 2s"),
                 waitMs(2000),
                 instant(() -> autoStage = "parking"),
@@ -116,8 +137,7 @@ public abstract class AutoShootFirstBase extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
-        launcher.setVelocity(launcherTargetVelocity);
-        intake.setPower(1);
+        schedule(autoRoutine());
     }
 
     @Override
@@ -133,21 +153,7 @@ public abstract class AutoShootFirstBase extends OpMode {
         telemetry.addData("Auto stage", autoStage);
         telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
 
-        if (launch_Done || System.currentTimeMillis() - startTime > 10_000) {
-            launcher.setVelocity(0);
-            windmillServo.setPower(0);
-            launcher.setPower(0);
-            intake.setPower(0);
-            if (!launch_Done) {
-                launch_Done = true;
-                telemetry.addData("launch done", "set launch done");
-                schedule(autoRoutine());
-            }
-            telemetry.update();  // keep the Driver Station refreshing while driving
-            return;
-        }
-
-        if (!launch_Done) {
+        if (launching) {
             if (launcher.getVelocity() > launcherMinVelocity) {
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
