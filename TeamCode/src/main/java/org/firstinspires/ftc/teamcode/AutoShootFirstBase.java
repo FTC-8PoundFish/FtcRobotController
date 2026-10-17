@@ -19,12 +19,13 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
+import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 /*
  * Shared Auto for the AutoShootFirst* OpModes. Each subclass picks the launcher target velocity;
- * the minimum (feed) velocity is always target - 25.
+ * the minimum (feed) velocity is always target - 15.
  */
 public abstract class AutoShootFirstBase extends OpMode {
 
@@ -33,7 +34,7 @@ public abstract class AutoShootFirstBase extends OpMode {
 
     protected AutoShootFirstBase(int launcherTargetVelocity) {
         this.launcherTargetVelocity = launcherTargetVelocity;
-        this.launcherMinVelocity = launcherTargetVelocity - 25;
+        this.launcherMinVelocity = launcherTargetVelocity - 15;
     }
 
     private long startTime;
@@ -58,6 +59,9 @@ public abstract class AutoShootFirstBase extends OpMode {
 
     public static int Launcher_Velocity = 0;
 
+    // Set by each step of autoRoutine() and shown every loop.
+    private String autoStage = "launching";
+
     //poses from before
     // other poses...
     private Path startToSeccond() {
@@ -70,9 +74,13 @@ public abstract class AutoShootFirstBase extends OpMode {
     // Each step starts as soon as the previous one finishes.
     private Command autoRoutine() {
         return sequential(
+                instant(() -> autoStage = "driving to seccondPose"),
                 follow(follower, startToSeccond()),
+                instant(() -> autoStage = "at seccondPose, waiting 2s"),
                 waitMs(2000),
-                follow(follower, park())
+                instant(() -> autoStage = "parking"),
+                follow(follower, park()),
+                instant(() -> autoStage = "parked")
         );
     }
 
@@ -122,6 +130,8 @@ public abstract class AutoShootFirstBase extends OpMode {
         telemetry.addData("Y", follower.pose().y());
         telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
         telemetry.addData("Follower Mode", follower.mode());
+        telemetry.addData("Auto stage", autoStage);
+        telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
 
         if (launch_Done || System.currentTimeMillis() - startTime > 10_000) {
             launcher.setVelocity(0);
