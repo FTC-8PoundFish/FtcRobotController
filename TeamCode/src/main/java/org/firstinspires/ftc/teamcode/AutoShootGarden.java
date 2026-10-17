@@ -104,7 +104,7 @@ public class AutoShootGarden extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
-        launcher.setVelocity(1185);
+        launcher.setVelocity(1200);
         intake.setPower(1);
     }
 
@@ -142,7 +142,7 @@ public class AutoShootGarden extends OpMode {
         }
 
         if (!launch_Done) {
-            if (launcher.getVelocity() > 1160) {
+            if (launcher.getVelocity() > 1185) {
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
                 intakePower += 0.5;
