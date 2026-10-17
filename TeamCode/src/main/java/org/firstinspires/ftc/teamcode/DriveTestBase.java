@@ -80,6 +80,8 @@ public abstract class DriveTestBase extends OpMode {
     private CRServo windmillServo = null;
     boolean stopIntake = false;
     private long timeNow;
+    // When right_bumper started being held, or -1 when it isn't held.
+    private long rightBumperHeldSince = -1;
 
     private GoBildaPinpointDriver odo;
 
@@ -293,11 +295,15 @@ public abstract class DriveTestBase extends OpMode {
          * Otherwise, we start spinning the launcher down.
          */
         if (gamepad1.right_bumper) {
+            if (rightBumperHeldSince < 0) {
+                rightBumperHeldSince = System.currentTimeMillis();
+            }
             launcher.setVelocity(launcherTargetVelocity);
             telemetry.addData("launcher get speed", "launcher get speed %f", launcher.getVelocity());
         } else {
             telemetry.addData("launcher stopped", "launcher stopped");
             launcher.setVelocity(0);
+            rightBumperHeldSince = -1;
         }
         telemetry.update();
 
@@ -308,7 +314,12 @@ public abstract class DriveTestBase extends OpMode {
          * add some power to the intake power. This can sometimes help dislodge stuck elements from
          * inside the hopper.
          */
-        if (gamepad1.right_bumper && (launcher.getVelocity() > launcherMinVelocity)) {
+        // After the bumper has been held for 10s, feed anyway even if the launcher never got
+        // up to launcherMinVelocity.
+        boolean heldLongEnough = rightBumperHeldSince >= 0
+                && System.currentTimeMillis() - rightBumperHeldSince > 5_000;
+        if (gamepad1.right_bumper
+                && (launcher.getVelocity() > launcherMinVelocity || heldLongEnough)) {
             windmillFeeder.feed();
         } else {
             if (gamepad1.left_bumper) {
