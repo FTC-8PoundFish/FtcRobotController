@@ -23,17 +23,17 @@ import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 
 /*
- * Shared Auto for the AutoShootSecond* OpModes. Each subclass picks the launcher target velocity
- * and how far below it the minimum (feed) velocity sits.
+ * Shared Auto for the AutoShootSecond* OpModes. Each subclass picks the launcher target velocity;
+ * the minimum (feed) velocity is always target - 25.
  */
 public abstract class AutoShootSecondBase extends OpMode {
 
     private final int launcherTargetVelocity;
     private final int launcherMinVelocity;
 
-    protected AutoShootSecondBase(int launcherTargetVelocity, int minVelocityGap) {
+    protected AutoShootSecondBase(int launcherTargetVelocity) {
         this.launcherTargetVelocity = launcherTargetVelocity;
-        this.launcherMinVelocity = launcherTargetVelocity - minVelocityGap;
+        this.launcherMinVelocity = launcherTargetVelocity - 25;
     }
 
     private long startTime;
