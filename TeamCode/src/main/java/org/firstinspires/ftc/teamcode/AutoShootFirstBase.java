@@ -133,6 +133,7 @@ public abstract class AutoShootFirstBase extends OpMode {
                 telemetry.addData("launch done", "set launch done");
                 schedule(autoRoutine());
             }
+            telemetry.update();  // keep the Driver Station refreshing while driving
             return;
         }
 
