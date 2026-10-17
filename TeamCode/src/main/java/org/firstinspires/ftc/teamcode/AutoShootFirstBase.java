@@ -19,6 +19,7 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
+import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 /*
@@ -38,13 +39,11 @@ public abstract class AutoShootFirstBase extends OpMode {
     private long startTime;
 
     boolean launch_Done = false;
-    boolean stopped = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
-    private final Pose startPose = p.of(144, 55, 0);
-    private final Pose gardenPose = p.of(0, 0, 0);
-    private final Pose park = p.of(48, 12, 0);
-    private final Pose moveRight = p.of(48, 10, 0);
+    private final Pose startPose = p.of(144, 60, 0);
+    private final Pose seccondPose = p.of(124, 40, 0);
+    private final Pose park = p.of(56, 20, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -61,24 +60,19 @@ public abstract class AutoShootFirstBase extends OpMode {
 
     //poses from before
     // other poses...
-    private Path startToGarden() {
-
-        return line(startPose, gardenPose).linear(startPose, gardenPose);
+    private Path startToSeccond() {
+        return line(startPose, seccondPose).linear(startPose, seccondPose);
     }
     private Path park() {
-        return line(startPose, park).linear(startPose, park);
-    }
-    // Starts from wherever the robot is when it's called, since the park path may not have finished.
-    private Path toMoveRight() {
-        Pose current = p.of(48, 0, 0);
-        return line(current, moveRight).linear(current, moveRight);
+        return line(seccondPose, park).linear(seccondPose, park);
     }
 
+    // Each step starts as soon as the previous one finishes.
     private Command autoRoutine() {
         return sequential(
+                follow(follower, startToSeccond()),
+                waitMs(2000),
                 follow(follower, park())
-                // Add mechanism commands here.
-//                follow(follower, park())
         );
     }
 
@@ -138,14 +132,6 @@ public abstract class AutoShootFirstBase extends OpMode {
                 launch_Done = true;
                 telemetry.addData("launch done", "set launch done");
                 schedule(autoRoutine());
-            }
-            // Checked every loop (not just once above) so it actually fires at the 20s mark.
-            if (!stopped && System.currentTimeMillis() - startTime > 13_000) {
-                stopped = true;
-                Scheduler.reset();  // cancel whatever command is still running
-                follower.stop();    // and stop the drivetrain from following its path
-                schedule(follow(follower, toMoveRight()));
-                telemetry.addData("auto", "stopped at 13s, driving to moveRight");
             }
             return;
         }

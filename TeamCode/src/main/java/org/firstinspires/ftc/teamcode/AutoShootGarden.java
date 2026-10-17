@@ -34,7 +34,6 @@ public class AutoShootGarden extends OpMode {
     private final Pose startPose = p.of(144, 60, 0);
     private final Pose seccondPose = p.of(144, 40, 0);
     private final Pose park = p.of(56, 20, 0);
-    private final Pose moveRight = p.of(56, 10, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -57,11 +56,6 @@ public class AutoShootGarden extends OpMode {
     }
     private Path park() {
         return line(seccondPose, park).linear(seccondPose, park);
-    }
-    // Starts from wherever the robot is when it's called, since the park path may not have finished.
-    private Path toMoveRight() {
-        Pose current = follower.pose();
-        return line(current, moveRight).linear(current, moveRight);
     }
 
     private Command autoRoutine() {
