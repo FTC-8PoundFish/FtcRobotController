@@ -53,6 +53,10 @@ public abstract class AutoShootSecondBase extends OpMode {
     private static final int forward = 0;
     private final Pose shootPose = p.of(144 - forward, 84, 0);
     private final Pose park = p.of(130, 134, 0);
+    // If we shoot from closer to the wall than this x, first drive forward to this x
+    // before parking so we don't bump into the flower.
+    private static final double CLEAR_X = 140;
+    private final Pose clearPose = p.of(CLEAR_X, 84, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -115,10 +119,31 @@ public abstract class AutoShootSecondBase extends OpMode {
     private Path Park() {
         return line(shootPose, park).linear(shootPose, park);
     }
+    private Path shootToClear() {
+        return line(shootPose, clearPose).linear(shootPose, clearPose);
+    }
+    private Path clearToPark() {
+        return line(clearPose, park).linear(clearPose, park);
+    }
 
+
+    private static boolean samePose(Pose a, Pose b) {
+        return a.x() == b.x() && a.y() == b.y() && a.heading() == b.heading();
+    }
 
     // The whole auto. Each step starts as soon as the previous one finishes.
     private Command autoRoutine() {
+        // With forward = 0 we already start at shootPose, so don't build or follow a
+        // zero-length path.
+        Command driveToShoot = samePose(startPose, shootPose)
+                ? instant(() -> autoStage = "already at shootPose")
+                : follow(follower, startToShoot());
+        Command driveToPark = shootPose.x() > CLEAR_X
+                ? sequential(
+                        follow(follower, shootToClear()),
+                        instant(() -> autoStage = "parking (cleared flower)"),
+                        follow(follower, clearToPark()))
+                : follow(follower, Park());
         return sequential(
                 instant(() -> autoStage = "waiting 2s"),
                 waitMs(2000),
@@ -135,7 +160,7 @@ public abstract class AutoShootSecondBase extends OpMode {
                             ? "tag " + newTagId + " seen, driving to shootPose"
                             : "no " + waitingFor + " tag in 10s, driving to shootPose";
                 }),
-                follow(follower, startToShoot()),
+                driveToShoot,
                 instant(() -> {
                     autoStage = "launching";
                     launcher.setVelocity(launcherTargetVelocity);
@@ -148,7 +173,7 @@ public abstract class AutoShootSecondBase extends OpMode {
                     windmillFeeder.stop();
                     autoStage = "parking";
                 }),
-                follow(follower, Park()),
+                driveToPark,
                 instant(() -> autoStage = "parked")
         );
     }
