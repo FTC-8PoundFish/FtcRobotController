@@ -49,7 +49,7 @@ public abstract class AutoShootFirstBase extends OpMode {
     private final Pose shootPose = p.of(144 - forward, 60, 0);
 
     private final Pose seccondPose = p.of(124, 40, 0);
-    private final Pose park = p.of(56, 20, 0);
+    private final Pose park = p.of(60, 20, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;

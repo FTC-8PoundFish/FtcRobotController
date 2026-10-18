@@ -16,11 +16,18 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
+import static com.pedropathing.ivy.commands.Commands.waitUntil;
 
 /*
  * Shared Auto for the AutoShootSecond* OpModes. Each subclass picks the launcher target velocity;
@@ -43,9 +50,9 @@ public abstract class AutoShootSecondBase extends OpMode {
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 84, 0);
     // move forward this many inches to shoot (same as AutoShootFirstBase)
-    private static final int forward = 4;
+    private static final int forward = 0;
     private final Pose shootPose = p.of(144 - forward, 84, 0);
-    private final Pose park = p.of(130, 138, 0);
+    private final Pose park = p.of(130, 134, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -63,6 +70,44 @@ public abstract class AutoShootSecondBase extends OpMode {
     // Set by each step of autoRoutine() and shown every loop.
     private String autoStage = "waiting for start";
 
+    // Start driving as soon as the Limelight sees the tag we're waiting for, or at
+    // TAG_WAIT_TIMEOUT_MS after start if it never shows up. Tags seen during init and the
+    // first 2s decide what we wait for:
+    //   only blue seen -> wait for any red tag
+    //   only red seen  -> wait for any blue tag
+    //   otherwise      -> wait for any tag ID that wasn't visible before
+    private static final int APRILTAG_PIPELINE = 0;
+    private static final long TAG_WAIT_TIMEOUT_MS = 10_000;
+    private static final int RED_TAG_MIN = 30, RED_TAG_MAX = 37;
+    private static final int BLUE_TAG_MIN = 38, BLUE_TAG_MAX = 45;
+    private Limelight3A limelight;
+    private final Set<Integer> knownTagIds = new HashSet<>();
+    private boolean watchingForNewTag = false;
+    private String waitingFor = "any new tag";  // "red", "blue" or "any new tag"
+    private int newTagId = -1;
+
+    private static boolean isRed(int id) {
+        return id >= RED_TAG_MIN && id <= RED_TAG_MAX;
+    }
+    private static boolean isBlue(int id) {
+        return id >= BLUE_TAG_MIN && id <= BLUE_TAG_MAX;
+    }
+
+    private void chooseTagToWaitFor() {
+        boolean sawRed = false, sawBlue = false;
+        for (int id : knownTagIds) {
+            sawRed |= isRed(id);
+            sawBlue |= isBlue(id);
+        }
+        if (sawBlue && !sawRed) {
+            waitingFor = "red";
+        } else if (sawRed && !sawBlue) {
+            waitingFor = "blue";
+        } else {
+            waitingFor = "any new tag";
+        }
+    }
+
 
     private Path startToShoot() {
         return line(startPose, shootPose).linear(startPose, shootPose);
@@ -75,9 +120,21 @@ public abstract class AutoShootSecondBase extends OpMode {
     // The whole auto. Each step starts as soon as the previous one finishes.
     private Command autoRoutine() {
         return sequential(
-                instant(() -> autoStage = "waiting until 10s"),
-                waitMs(10_000),
-                instant(() -> autoStage = "driving to shootPose"),
+                instant(() -> autoStage = "waiting 2s"),
+                waitMs(2000),
+                instant(() -> {
+                    chooseTagToWaitFor();
+                    watchingForNewTag = true;  // loop() sets newTagId when that tag shows up
+                    autoStage = "waiting for " + waitingFor + " AprilTag";
+                }),
+                waitUntil(() -> newTagId >= 0
+                        || System.currentTimeMillis() - startTime > TAG_WAIT_TIMEOUT_MS),
+                instant(() -> {
+                    watchingForNewTag = false;
+                    autoStage = newTagId >= 0
+                            ? "tag " + newTagId + " seen, driving to shootPose"
+                            : "no " + waitingFor + " tag in 10s, driving to shootPose";
+                }),
                 follow(follower, startToShoot()),
                 instant(() -> {
                     autoStage = "launching";
@@ -105,6 +162,34 @@ public abstract class AutoShootSecondBase extends OpMode {
     @Override
     public void stop() {
         OpModeStorage.autonomousEndPose = follower.pose(); //saves your position in that file
+        limelight.stop();
+    }
+
+    // Tags visible before we start watching count as "already there"; after that, we look
+    // for a tag matching waitingFor.
+    private void updateTags() {
+        LLResult result = limelight.getLatestResult();
+        if (result == null || !result.isValid()) {
+            return;
+        }
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+            int id = tag.getFiducialId();
+            if (!watchingForNewTag) {
+                knownTagIds.add(id);
+            } else if (newTagId < 0 && isTagWeAreWaitingFor(id)) {
+                newTagId = id;
+            }
+        }
+    }
+
+    private boolean isTagWeAreWaitingFor(int id) {
+        if (waitingFor.equals("red")) {
+            return isRed(id);
+        }
+        if (waitingFor.equals("blue")) {
+            return isBlue(id);
+        }
+        return !knownTagIds.contains(id);
     }
 
     @Override
@@ -120,6 +205,10 @@ public abstract class AutoShootSecondBase extends OpMode {
         launcher =hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.setPollRateHz(100);
+        limelight.pipelineSwitch(APRILTAG_PIPELINE);
+        limelight.start();
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d)",
@@ -155,6 +244,13 @@ public abstract class AutoShootSecondBase extends OpMode {
     }
 
     @Override
+    public void init_loop() {
+        updateTags();
+        telemetry.addData("Tags already visible", knownTagIds);
+        telemetry.update();
+    }
+
+    @Override
     public void start() {
         startTime = System.currentTimeMillis();
         schedule(autoRoutine());
@@ -164,6 +260,7 @@ public abstract class AutoShootSecondBase extends OpMode {
     public void loop() {
 
         follower.update();
+        updateTags();
         Scheduler.execute();
 
         telemetry.addData("X", follower.pose().x());
@@ -172,6 +269,8 @@ public abstract class AutoShootSecondBase extends OpMode {
         telemetry.addData("Follower Mode", follower.mode());
         telemetry.addData("Auto stage", autoStage);
         telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
+        telemetry.addData("Tags already visible", knownTagIds);
+        telemetry.addData("New tag", newTagId >= 0 ? String.valueOf(newTagId) : "none");
 
         if (launching) {
             if (launcher.getVelocity() > launcherMinVelocity) {

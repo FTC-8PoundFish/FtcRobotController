@@ -91,8 +91,8 @@ public abstract class DriveTestBase extends OpMode {
 
     @Override
     public void start(){
-        follower.setPose(OpModeStorage.autonomousEndPose);
-        follower.update();
+//        follower.setPose(OpModeStorage.autonomousEndPose);
+//        follower.update();
     }
 
 
@@ -112,7 +112,7 @@ public abstract class DriveTestBase extends OpMode {
         leftIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
         rightIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
         intake.setZeroPowerBehavior(BRAKE);
-        follower = Constants.create(hardwareMap);
+//        follower = Constants.create(hardwareMap);
 
         frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -188,25 +188,25 @@ public abstract class DriveTestBase extends OpMode {
 
     @Override
     public void loop() {
-        DrivePowers powers = ManualDrive.fieldCentric(
-                -gamepad1.left_stick_y,
-                gamepad1.left_stick_x,
-                gamepad1.right_stick_x,
-                follower.pose().heading()
-        );
+//        DrivePowers powers = ManualDrive.fieldCentric(
+//                -gamepad1.left_stick_y,
+//                gamepad1.left_stick_x,
+//                gamepad1.right_stick_x,
+//                follower.pose().heading()
+//        );
         // Mecanum drive is controlled with three axes: drive (front-and-back),
         // strafe (left-and-right), and twist (rotating the whole chassis).
         double drive = -gamepad1.left_stick_y;
         double strafe = gamepad1.left_stick_x;
         double turn = gamepad1.right_stick_x;
 //        follower.manual(powers);
-        ManualDrive.driveOrHold(follower,powers);
-        if (gamepad1.startWasPressed()) {
-            Pose cornerPose = new Pose(10.5, 10.5, Math.toRadians(90));
-            // On the fly Pose creation, we dont recommend this for Autonomous. Only accepts radians for heading
-            follower.setPose(cornerPose); // overrides our pose
-        }
-        follower.update();
+//        ManualDrive.driveOrHold(follower,powers);
+//        if (gamepad1.startWasPressed()) {
+//            Pose cornerPose = new Pose(10.5, 10.5, Math.toRadians(90));
+//            // On the fly Pose creation, we dont recommend this for Autonomous. Only accepts radians for heading
+//            follower.setPose(cornerPose); // overrides our pose
+//        }
+//        follower.update();
 
         double[] speeds = {
                 (drive + strafe + turn),
@@ -214,10 +214,10 @@ public abstract class DriveTestBase extends OpMode {
                 (drive - strafe + turn),
                 (drive + strafe - turn)
         };
-        Pose robotPose = follower.pose(); // returns a Pose object
-        telemetry.addData("Robot X", robotPose.x());
-        telemetry.addData("Robot Y", robotPose.y());
-        telemetry.addData("Robot Heading", Math.toDegrees(robotPose.heading()));
+//        Pose robotPose = follower.pose(); // returns a Pose object
+//        telemetry.addData("Robot X", robotPose.x());
+//        telemetry.addData("Robot Y", robotPose.y());
+//        telemetry.addData("Robot Heading", Math.toDegrees(robotPose.heading()));
         launch();
         if (gamepad1.right_trigger_pressed){
             intake.setPower(-1);
