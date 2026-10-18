@@ -49,13 +49,13 @@ public abstract class AutoShootSecondBase extends OpMode {
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 84, 0);
-    // move forward this many inches to shoot (same as AutoShootFirstBase)
+    // move forward for 0 inches to shoot (shoot from startPose)
     private static final int forward = 0;
     private final Pose shootPose = p.of(144 - forward, 84, 0);
     private final Pose park = p.of(130, 134, 0);
     // If we shoot from closer to the wall than this x, first drive forward to this x
     // before parking so we don't bump into the flower.
-    private static final double CLEAR_X = 140;
+    private static final double CLEAR_X = 138;
     private final Pose clearPose = p.of(CLEAR_X, 84, 0);
 
     private DcMotorEx launcher = null;
@@ -80,7 +80,7 @@ public abstract class AutoShootSecondBase extends OpMode {
     //   only blue seen -> wait for any red tag
     //   only red seen  -> wait for any blue tag
     //   otherwise      -> wait for any tag ID that wasn't visible before
-    private static final int APRILTAG_PIPELINE = 0;
+    private static final int APRILTAG_PIPELINE = 1;
     private static final long TAG_WAIT_TIMEOUT_MS = 10_000;
     private static final int RED_TAG_MIN = 30, RED_TAG_MAX = 37;
     private static final int BLUE_TAG_MIN = 38, BLUE_TAG_MAX = 45;
@@ -162,7 +162,8 @@ public abstract class AutoShootSecondBase extends OpMode {
                 }),
                 driveToShoot,
                 instant(() -> {
-                    autoStage = "launching";
+                    String tag = (newTagId >= 0) ? " detect_tag " : " timeout";
+                    autoStage = "launching" + tag;
                     launcher.setVelocity(launcherTargetVelocity);
                     launching = true;  // loop() feeds the windmill while this is true
                 }),
