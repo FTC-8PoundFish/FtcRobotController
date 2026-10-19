@@ -52,7 +52,7 @@ public abstract class AutoShootSecondBase extends OpMode {
     // move forward for 0 inches to shoot (shoot from startPose)
     private static final int forward = 0;
     private final Pose shootPose = p.of(144 - forward, 84, 0);
-    private final Pose park = p.of(130, 134, 0);
+    private final Pose park = p.of(132, 130, 0);
     // If we shoot from closer to the wall than this x, first drive forward to this x
     // before parking so we don't bump into the flower.
     private static final double CLEAR_X = 138;
