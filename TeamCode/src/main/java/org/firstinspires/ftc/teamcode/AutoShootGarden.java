@@ -34,6 +34,9 @@ public class AutoShootGarden extends OpMode {
     private final Pose startPose = p.of(144, 60, 0);
     private final Pose seccondPose = p.of(144, 40, 0);
     private final Pose park = p.of(56, 20, 0);
+    private final Pose gardenPose = p.of(144,20,270);
+    private static final int forward = 4;
+    private final Pose shootPose = p.of(144 - forward, 60, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -50,17 +53,23 @@ public class AutoShootGarden extends OpMode {
 
     //poses from before
     // other poses...
-    private Path startToSeccond() {
+    private Path GardenToSeccond() {
 
-        return line(startPose, seccondPose).linear(startPose, seccondPose);
+        return line(gardenPose, seccondPose).linear(gardenPose, seccondPose);
+    }
+    private Path toGarden(){
+        return line(startPose,gardenPose).linear(startPose,gardenPose);
     }
     private Path park() {
-        return line(seccondPose, park).linear(seccondPose, park);
+        return line(gardenPose, park).linear(gardenPose, park);
+    }
+    private Path startToShoot() {
+        return line(startPose, shootPose).linear(startPose, shootPose);
     }
 
     private Command autoRoutine() {
         return sequential(
-                follow(follower, startToSeccond())
+                follow(follower, toGarden())
                 // Add mechanism commands here.
 //                follow(follower, park())
         );
@@ -98,7 +107,8 @@ public class AutoShootGarden extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
-        launcher.setVelocity(1200);
+        schedule(follow(follower, startToShoot()));
+        launcher.setVelocity(1187);
         intake.setPower(1);
     }
 
@@ -117,7 +127,7 @@ public class AutoShootGarden extends OpMode {
             launcher.setVelocity(0);
             windmillServo.setPower(0);
             launcher.setPower(0);
-            intake.setPower(0);
+            intake.setPower(1);
             if (!launch_Done) {
                 launch_Done = true;
                 telemetry.addData("launch done", "set launch done");
@@ -129,8 +139,13 @@ public class AutoShootGarden extends OpMode {
                 stopped = true;
                 Scheduler.reset();  // cancel whatever command is still running
                 follower.stop();    // and stop the drivetrain from following its path
+                schedule(follow(follower, GardenToSeccond()));
+            }
+            if (!stopped && System.currentTimeMillis() - startTime > 17_000) {
+                stopped = true;
+                Scheduler.reset();  // cancel whatever command is still running
+                follower.stop();    // and stop the drivetrain from following its path
                 schedule(follow(follower, park()));
-                telemetry.addData("auto", "stopped at 20s, driving to moveRight");
             }
             return;
         }

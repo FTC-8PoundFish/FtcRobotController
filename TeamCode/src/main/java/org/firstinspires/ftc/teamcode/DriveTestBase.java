@@ -58,24 +58,23 @@ import com.pedropathing.follower.ManualDrive;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  *
- * Shared TeleOp for the DriveTestRed* / DriveTestBlue* OpModes. Each subclass picks the
- * launcher target velocity and the alliance color (via DriveTestBaseRed / DriveTestBaseBlue);
+ * Shared TeleOp for the DriveTest* OpModes. Each subclass picks the launcher target velocity;
  * the minimum (feed) velocity is always target - 25. The speeds are per-instance, so
  * adjusting them here never changes Constants.
  *
- * Hold x to auto-rotate toward this color's AprilTags (see TagAimer).
+ * Limelight aiming (hold x to auto-rotate toward a color's AprilTags, see TagAimer) is
+ * commented out for now. To bring it back, pass the alliance color (red = true/false)
+ * into TagAimer.
  */
 public abstract class DriveTestBase extends OpMode {
 
     private int launcherTargetVelocity;
     private int launcherMinVelocity;
-    private final boolean red;
-    private TagAimer tagAimer;
+//    private TagAimer tagAimer;
 
-    protected DriveTestBase(int launcherTargetVelocity, boolean red) {
+    protected DriveTestBase(int launcherTargetVelocity) {
         this.launcherTargetVelocity = launcherTargetVelocity;
         this.launcherMinVelocity = launcherTargetVelocity - 25;
-        this.red = red;
     }
 
     private DcMotor frontRight, frontLeft, backRight, backLeft;
@@ -132,7 +131,7 @@ public abstract class DriveTestBase extends OpMode {
         windmillServo.setPower(0);
         windmillServo.setDirection(DcMotorSimple.Direction.REVERSE);
         windmillFeeder = new WindmillFeeder(windmillServo);
-        tagAimer = new TagAimer(hardwareMap, telemetry, red);
+//        tagAimer = new TagAimer(hardwareMap, telemetry, red);
 
         /*
          * Setting zeroPowerBehavior to BRAKE enables a "brake mode". This causes the motor to
@@ -206,12 +205,12 @@ public abstract class DriveTestBase extends OpMode {
         double drive = -gamepad1.left_stick_y;
         double strafe = gamepad1.left_stick_x;
         double turn = gamepad1.right_stick_x;
-        telemetry.addData("Color", tagAimer.colorName());
-        if (gamepad1.x) {
-            turn = tagAimer.aimTurn(turn);
-        } else {
-            telemetry.addData("Aim", "hold x to aim");
-        }
+//        telemetry.addData("Color", tagAimer.colorName());
+//        if (gamepad1.x) {
+//            turn = tagAimer.aimTurn(turn);
+//        } else {
+//            telemetry.addData("Aim", "hold x to aim");
+//        }
 //        follower.manual(powers);
 //        ManualDrive.driveOrHold(follower,powers);
 //        if (gamepad1.startWasPressed()) {
@@ -298,10 +297,10 @@ public abstract class DriveTestBase extends OpMode {
     }
 
 
-    @Override
-    public void stop() {
-        tagAimer.stop();
-    }
+//    @Override
+//    public void stop() {
+//        tagAimer.stop();
+//    }
 
     void launch() {
         /*
