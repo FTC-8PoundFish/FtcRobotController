@@ -16,7 +16,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class WindmillFeeder {
 
     public static long ON_MILLS = 240;
-    public static long OFF_MILLS = 440; //160
+    public static long OFF_MILLS = 500; //160
 
     private final CRServo servo;
     private final ElapsedTime timer = new ElapsedTime();

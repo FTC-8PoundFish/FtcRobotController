@@ -32,7 +32,6 @@ package org.firstinspires.ftc.teamcode;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.math.Pose;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -43,8 +42,8 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
-import com.pedropathing.drivetrain.DrivePowers;
-import com.pedropathing.follower.ManualDrive;
+
+import com.qualcomm.robotcore.hardware.Servo;
 
 /*
  * This file contains a minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
@@ -70,18 +69,31 @@ public abstract class DriveTestBase extends OpMode {
 
     private int launcherTargetVelocity;
     private int launcherMinVelocity;
+    // Warm-up speed the launcher idles at between shots so it spins up faster.
+    private int launcherIdleVelocity;
 //    private TagAimer tagAimer;
 
     protected DriveTestBase(int launcherTargetVelocity) {
         this.launcherTargetVelocity = launcherTargetVelocity;
         this.launcherMinVelocity = launcherTargetVelocity - 25;
+        this.launcherIdleVelocity = launcherTargetVelocity - 100;
     }
 
     private DcMotor frontRight, frontLeft, backRight, backLeft;
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
+    // Flower servos are mirrored: the left one is set to REVERSE, so sending the same
+    // position to both turns one clockwise and the other counter-clockwise by the same angle.
+    // FLOWER_HOME is the servo's center, leaving room to rotate either way.
+    // FLOWER_90_DEG = 90 / (servo's full range in degrees): 0.3 for a 300-degree goBILDA
+    // servo, 0.333 for a 270-degree REV Smart Servo, 0.5 for a 180-degree servo.
+    private static final double FLOWER_HOME = 0.5;
+    private static final double FLOWER_90_DEG = 0.5;
+    double flowerPos = FLOWER_HOME;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
+    private Servo rightFlowerIntakeServo = null;
+    private Servo leftflowerIntakeServo = null;
     private CRServo windmillServo = null;
     boolean stopIntake = false;
     private long timeNow;
@@ -96,8 +108,7 @@ public abstract class DriveTestBase extends OpMode {
 
     @Override
     public void start(){
-//        follower.setPose(OpModeStorage.autonomousEndPose);
-//        follower.update();
+        launcher.setVelocity(launcherIdleVelocity);
     }
 
 
@@ -117,6 +128,12 @@ public abstract class DriveTestBase extends OpMode {
         leftIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
         rightIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
         intake.setZeroPowerBehavior(BRAKE);
+        rightFlowerIntakeServo = hardwareMap.get(Servo.class, "flowery");
+        leftflowerIntakeServo = hardwareMap.get(Servo.class, "flowey");
+        rightFlowerIntakeServo.setDirection(Servo.Direction.FORWARD);
+        leftflowerIntakeServo.setDirection(Servo.Direction.REVERSE);
+        rightFlowerIntakeServo.setPosition(flowerPos);
+        leftflowerIntakeServo.setPosition(flowerPos);
 //        follower = Constants.create(hardwareMap);
 
         frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -144,6 +161,7 @@ public abstract class DriveTestBase extends OpMode {
         backRight.setZeroPowerBehavior(BRAKE);
         intake.setZeroPowerBehavior(BRAKE);
 
+
         odo.setOffsets(
                 0,
                 0,
@@ -160,36 +178,12 @@ public abstract class DriveTestBase extends OpMode {
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
         telemetry.addData(
                 "Speed",
-                "target (%d), min (%d)",
+                "target (%d), min (%d) flower (%.2f)",
                 launcherTargetVelocity,
-                launcherMinVelocity);
+                launcherMinVelocity,
+                flowerPos);
         telemetry.update();
-        if (gamepad1.right_bumper) {
-            long start = System.currentTimeMillis();
-            while (System.currentTimeMillis() - start < 500) {
-            }
-            launcherTargetVelocity += 50;
-            launcherMinVelocity += 50;
-            telemetry.addData(
-                    "Speed",
-                    "target (%d), min (%d)",
-                    launcherTargetVelocity,
-                    launcherMinVelocity);
-            telemetry.update();
-        }
-        if (gamepad1.right_trigger_pressed) {
-            long start = System.currentTimeMillis();
-            while (System.currentTimeMillis() - start < 500) {
-            }
-            launcherTargetVelocity += 50;
-            launcherMinVelocity += 50;
-            telemetry.addData(
-                    "Speed",
-                    "target (%d), min (%d)",
-                    launcherTargetVelocity,
-                    launcherMinVelocity);
-            telemetry.update();
-        }
+
     }
 
     @Override
@@ -248,6 +242,20 @@ public abstract class DriveTestBase extends OpMode {
             leftIntakeServo.setPower(1);
             rightIntakeServo.setPower(1);
         }
+        // dpad_left = home, dpad_down = 45 degrees, dpad_up = 90 degrees (mirrored on each side).
+        if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left) {
+            if (gamepad1.dpad_down){
+                flowerPos = FLOWER_HOME + FLOWER_90_DEG / 2;
+            }
+            if (gamepad1.dpad_up){
+                flowerPos = FLOWER_HOME + FLOWER_90_DEG;
+            }
+            if (gamepad1.dpad_left){
+                flowerPos = FLOWER_HOME;
+            }
+            rightFlowerIntakeServo.setPosition(flowerPos);
+            leftflowerIntakeServo.setPosition(flowerPos);
+        }
 
 
 
@@ -270,6 +278,12 @@ public abstract class DriveTestBase extends OpMode {
         backLeft.setPower(speeds[2]);
         backRight.setPower(speeds[3]);
         telemetry.addData(
+                "Speed",
+                "target (%d), min (%d) flower (%f)",
+                launcherTargetVelocity,
+                launcherMinVelocity,
+                rightFlowerIntakeServo.getPosition());
+        telemetry.addData(
                 "Motors",
                 "frontLeft (%.2f), frontRight (%.2f), backLeft (%.2f), backRight (%.2f)",
                 speeds[0],
@@ -285,13 +299,11 @@ public abstract class DriveTestBase extends OpMode {
         Pose2D position = odo.getPosition();
         telemetry.addData(
                 "Odo",
-                "x (%f): y (%f) posx %f posy %f encoderx %d encodery %d",
+                "x (%f): y (%f) left (%f) right (%f)",
                 position.getX(DistanceUnit.INCH),
                 position.getY(DistanceUnit.INCH),
-                odo.getPosX(DistanceUnit.MM),
-                odo.getPosY(DistanceUnit.MM),
-                odo.getEncoderX(),
-                odo.getEncoderY()
+                leftflowerIntakeServo.getPosition(),
+                rightFlowerIntakeServo.getPosition()
         );
         telemetry.update();
     }
@@ -318,8 +330,8 @@ public abstract class DriveTestBase extends OpMode {
             launcher.setVelocity(launcherTargetVelocity);
             telemetry.addData("launcher get speed", "launcher get speed %f", launcher.getVelocity());
         } else {
-            telemetry.addData("launcher stopped", "launcher stopped");
-            launcher.setVelocity(0);
+            telemetry.addData("launcher idle", "launcher idle %d", launcherIdleVelocity);
+            launcher.setVelocity(launcherIdleVelocity);
             rightBumperHeldSince = -1;
         }
         telemetry.update();

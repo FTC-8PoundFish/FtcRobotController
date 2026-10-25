@@ -32,7 +32,7 @@ public class AutoShootFirstTRUE extends OpMode {
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 60, 0);
-    private final Pose seccondPose = p.of(144, 40, 0);
+    private final Pose seccondPose = p.of(130, 40, 0);
     private final Pose park = p.of(56, 20, 0);
 
     private DcMotorEx launcher = null;
