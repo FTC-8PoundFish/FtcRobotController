@@ -88,7 +88,7 @@ public abstract class DriveTestBase extends OpMode {
     // FLOWER_90_DEG = 90 / (servo's full range in degrees): 0.3 for a 300-degree goBILDA
     // servo, 0.333 for a 270-degree REV Smart Servo, 0.5 for a 180-degree servo.
     private static final double FLOWER_HOME = 0.5;
-    private static final double FLOWER_90_DEG = 0.5;
+    private static final double FLOWER_90_DEG = 0.4;
     double flowerPos = FLOWER_HOME;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
@@ -99,6 +99,17 @@ public abstract class DriveTestBase extends OpMode {
     private long timeNow;
     // When right_bumper started being held, or -1 when it isn't held.
     private long rightBumperHeldSince = -1;
+
+    // Stick values smaller than this are treated as 0, so a stick that doesn't rest
+    // exactly at center won't creep the robot.
+    private static final double STICK_DEADBAND = 0.05;
+    // Holding x with the sticks centered rocks the robot forward and back (e.g. to
+    // settle artifacts in the hopper). Each half-cycle drives JIGGLE_HALF_MS at
+    // JIGGLE_POWER, forward first, so it ends up roughly where it started.
+    private static final double JIGGLE_POWER = 0.3;
+    private static final long JIGGLE_HALF_MS = 150;
+    // When x started being held for jiggling, or -1 when it isn't.
+    private long jiggleSince = -1;
 
     private GoBildaPinpointDriver odo;
 
@@ -130,8 +141,8 @@ public abstract class DriveTestBase extends OpMode {
         intake.setZeroPowerBehavior(BRAKE);
         rightFlowerIntakeServo = hardwareMap.get(Servo.class, "flowery");
         leftflowerIntakeServo = hardwareMap.get(Servo.class, "flowey");
-        rightFlowerIntakeServo.setDirection(Servo.Direction.FORWARD);
-        leftflowerIntakeServo.setDirection(Servo.Direction.REVERSE);
+        rightFlowerIntakeServo.setDirection(Servo.Direction.REVERSE);
+        leftflowerIntakeServo.setDirection(Servo.Direction.FORWARD);
         rightFlowerIntakeServo.setPosition(flowerPos);
         leftflowerIntakeServo.setPosition(flowerPos);
 //        follower = Constants.create(hardwareMap);
@@ -188,42 +199,27 @@ public abstract class DriveTestBase extends OpMode {
 
     @Override
     public void loop() {
-//        DrivePowers powers = ManualDrive.fieldCentric(
-//                -gamepad1.left_stick_y,
-//                gamepad1.left_stick_x,
-//                gamepad1.right_stick_x,
-//                follower.pose().heading()
-//        );
-        // Mecanum drive is controlled with three axes: drive (front-and-back),
-        // strafe (left-and-right), and twist (rotating the whole chassis).
-        double drive = -gamepad1.left_stick_y;
-        double strafe = gamepad1.left_stick_x;
-        double turn = gamepad1.right_stick_x;
-//        telemetry.addData("Color", tagAimer.colorName());
-//        if (gamepad1.x) {
-//            turn = tagAimer.aimTurn(turn);
-//        } else {
-//            telemetry.addData("Aim", "hold x to aim");
-//        }
-//        follower.manual(powers);
-//        ManualDrive.driveOrHold(follower,powers);
-//        if (gamepad1.startWasPressed()) {
-//            Pose cornerPose = new Pose(10.5, 10.5, Math.toRadians(90));
-//            // On the fly Pose creation, we dont recommend this for Autonomous. Only accepts radians for heading
-//            follower.setPose(cornerPose); // overrides our pose
-//        }
-//        follower.update();
-
+        double drive = deadband(-gamepad1.left_stick_y);
+        double strafe = deadband(gamepad1.left_stick_x);
+        double turn = deadband(gamepad1.right_stick_x);
+        boolean sticksCentered = drive == 0 && strafe == 0 && turn == 0;
+        if (sticksCentered && gamepad1.x) {
+            long now = System.currentTimeMillis();
+            if (jiggleSince < 0) {
+                jiggleSince = now;
+            }
+            boolean forwardHalf = ((now - jiggleSince) / JIGGLE_HALF_MS) % 2 == 0;
+            drive = forwardHalf ? JIGGLE_POWER : -JIGGLE_POWER;
+            telemetry.addData("Jiggle", forwardHalf ? "forward" : "back");
+        } else {
+            jiggleSince = -1;
+        }
         double[] speeds = {
                 (drive + strafe + turn),
                 (drive - strafe - turn),
                 (drive - strafe + turn),
                 (drive + strafe - turn)
         };
-//        Pose robotPose = follower.pose(); // returns a Pose object
-//        telemetry.addData("Robot X", robotPose.x());
-//        telemetry.addData("Robot Y", robotPose.y());
-//        telemetry.addData("Robot Heading", Math.toDegrees(robotPose.heading()));
         launch();
         if (gamepad1.right_trigger_pressed){
             intake.setPower(-1);
@@ -245,13 +241,16 @@ public abstract class DriveTestBase extends OpMode {
         // dpad_left = home, dpad_down = 45 degrees, dpad_up = 90 degrees (mirrored on each side).
         if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left) {
             if (gamepad1.dpad_down){
-                flowerPos = FLOWER_HOME + FLOWER_90_DEG / 2;
-            }
-            if (gamepad1.dpad_up){
                 flowerPos = FLOWER_HOME + FLOWER_90_DEG;
             }
-            if (gamepad1.dpad_left){
+            if (gamepad1.dpad_up){
                 flowerPos = FLOWER_HOME;
+            }
+            if (gamepad1.dpad_left){
+                flowerPos = flowerPos + 0.05;
+            }
+            if (gamepad1.dpad_right){
+                flowerPos = flowerPos - 0.05;
             }
             rightFlowerIntakeServo.setPosition(flowerPos);
             leftflowerIntakeServo.setPosition(flowerPos);
@@ -313,6 +312,10 @@ public abstract class DriveTestBase extends OpMode {
 //    public void stop() {
 //        tagAimer.stop();
 //    }
+
+    private static double deadband(double value) {
+        return Math.abs(value) < STICK_DEADBAND ? 0 : value;
+    }
 
     void launch() {
         /*
