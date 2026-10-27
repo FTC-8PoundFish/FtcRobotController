@@ -88,8 +88,12 @@ public abstract class DriveTestBase extends OpMode {
     // FLOWER_90_DEG = 90 / (servo's full range in degrees): 0.3 for a 300-degree goBILDA
     // servo, 0.333 for a 270-degree REV Smart Servo, 0.5 for a 180-degree servo.
     private static final double FLOWER_HOME = 0.5;
-    private static final double FLOWER_90_DEG = 0.4;
+    private static final double FLOWER_90_DEG = 0.44;
     double flowerPos = FLOWER_HOME;
+    // Holding dpad_left / dpad_right moves the flower this much per second, so the speed
+    // doesn't depend on how fast loop() runs.
+    private static final double FLOWER_NUDGE_PER_SEC = 0.1;
+    private double lastLoopTime = -1;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
     private Servo rightFlowerIntakeServo = null;
@@ -238,20 +242,22 @@ public abstract class DriveTestBase extends OpMode {
             leftIntakeServo.setPower(1);
             rightIntakeServo.setPower(1);
         }
-        // dpad_left = home, dpad_down = 45 degrees, dpad_up = 90 degrees (mirrored on each side).
-        if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left) {
+        // dpad_down = home + 90 degrees, dpad_up = home (mirrored on each side).
+        // Holding dpad_left / dpad_right moves it slowly and continuously.
+        double now = getRuntime();
+        double dt = lastLoopTime < 0 ? 0 : now - lastLoopTime;
+        lastLoopTime = now;
+        if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left || gamepad1.dpad_right) {
             if (gamepad1.dpad_down){
                 flowerPos = FLOWER_HOME + FLOWER_90_DEG;
-            }
-            if (gamepad1.dpad_up){
+            } else if (gamepad1.dpad_up){
                 flowerPos = FLOWER_HOME;
+            } else if (gamepad1.dpad_left){
+                flowerPos = flowerPos + FLOWER_NUDGE_PER_SEC * dt;
+            } else if (gamepad1.dpad_right){
+                flowerPos = flowerPos - FLOWER_NUDGE_PER_SEC * dt;
             }
-            if (gamepad1.dpad_left){
-                flowerPos = flowerPos + 0.05;
-            }
-            if (gamepad1.dpad_right){
-                flowerPos = flowerPos - 0.05;
-            }
+            flowerPos = Math.max(0.0, Math.min(1.0, flowerPos));
             rightFlowerIntakeServo.setPosition(flowerPos);
             leftflowerIntakeServo.setPosition(flowerPos);
         }
