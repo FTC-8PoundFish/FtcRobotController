@@ -22,11 +22,12 @@ import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
+import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
+import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
 
 @Autonomous(name = "AutoShootGarden", group = "OpMode")
 public class AutoShootGarden extends OpMode {
 
-    public static final int TARGET_SPEED = 1185;
     private long startTime;
 
     boolean launch_Done = false;
@@ -124,7 +125,7 @@ public class AutoShootGarden extends OpMode {
     public void start() {
         startTime = System.currentTimeMillis();
         schedule(follow(follower, startToShoot()));
-        launcher.setVelocity(TARGET_SPEED);
+        launcher.setVelocity(launcherTargetVelocity);
     }
 
     @Override
@@ -180,7 +181,7 @@ public class AutoShootGarden extends OpMode {
         }
 
         if (!launch_Done) {
-            if (launcher.getVelocity() >= TARGET_SPEED - 20) {
+            if (launcher.getVelocity() >= launcherMinVelocity()) {
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
                 intakePower += 0.5;

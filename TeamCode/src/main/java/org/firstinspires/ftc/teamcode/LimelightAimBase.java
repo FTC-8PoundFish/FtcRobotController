@@ -8,7 +8,7 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 /*
  * Shared TeleOp for LimelightRed / LimelightBlue. Regular mecanum drive (same as
- * DriveTestBase). While right_bumper is held, the robot looks for this color's AprilTags and
+ * DriveTest). While right_bumper is held, the robot looks for this color's AprilTags and
  * rotates so the camera faces the center between the 2 middle tags of a group of 4
  * (see TagAimer). The driver can still drive and strafe with the left stick while aiming.
  */

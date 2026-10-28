@@ -23,19 +23,16 @@ import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
+import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
+import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+
 /*
- * Shared Auto for the AutoShootFirst* OpModes. Each subclass picks the launcher target velocity;
- * the minimum (feed) velocity is always target - 20.
+ * Launcher speeds come from LauncherConfig (tunable on FTC Dashboard).
  */
-public abstract class AutoShootFirstBase extends OpMode {
-
-    private final int launcherTargetVelocity;
-    private final int launcherMinVelocity;
-
-    protected AutoShootFirstBase(int launcherTargetVelocity) {
-        this.launcherTargetVelocity = launcherTargetVelocity;
-        this.launcherMinVelocity = launcherTargetVelocity - 20;
-    }
+@Autonomous(name = "AutoShootFirst", group = "OpMode")
+public class AutoShootFirst extends OpMode {
 
     private long startTime;
 
@@ -62,8 +59,6 @@ public abstract class AutoShootFirstBase extends OpMode {
 
     private WindmillFeeder windmillFeeder;
 
-    public static int Launcher_Velocity = 0;
-
     // Set by each step of autoRoutine() and shown every loop.
     private String autoStage = "waiting for start";
 
@@ -85,7 +80,7 @@ public abstract class AutoShootFirstBase extends OpMode {
                 instant(() -> autoStage = "driving to shootPose"),
                 follow(follower, startToShoot()),
                 instant(() -> {
-                    autoStage = "launching";
+                    autoStage = "launching with speed:" + launcherTargetVelocity;
                     launcher.setVelocity(launcherTargetVelocity);
                     intake.setPower(1);
                     launching = true;  // loop() feeds the windmill while this is true
@@ -156,7 +151,7 @@ public abstract class AutoShootFirstBase extends OpMode {
         telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
 
         if (launching) {
-            if (launcher.getVelocity() > launcherMinVelocity) {
+            if (launcher.getVelocity() > launcherMinVelocity()) {
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
                 intakePower += 0.5;

@@ -21,6 +21,8 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
+import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
 
 @Autonomous(name = "AutoShootFirstTRUE", group = "OpMode")
 public class AutoShootFirstTRUE extends OpMode {
@@ -98,7 +100,7 @@ public class AutoShootFirstTRUE extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
-        launcher.setVelocity(1187);
+        launcher.setVelocity(launcherTargetVelocity);
         intake.setPower(1);
     }
 
@@ -136,7 +138,7 @@ public class AutoShootFirstTRUE extends OpMode {
         }
 
         if (!launch_Done) {
-            if (launcher.getVelocity() > 1185) {
+            if (launcher.getVelocity() > launcherMinVelocity()) {
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
                 intakePower += 0.5;
