@@ -26,6 +26,7 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
 @Autonomous(name = "AutoShootGarden", group = "OpMode")
 public class AutoShootGarden extends OpMode {
 
+    public static final int TARGET_SPEED = 1185;
     private long startTime;
 
     boolean launch_Done = false;
@@ -123,7 +124,7 @@ public class AutoShootGarden extends OpMode {
     public void start() {
         startTime = System.currentTimeMillis();
         schedule(follow(follower, startToShoot()));
-        launcher.setVelocity(1187);
+        launcher.setVelocity(TARGET_SPEED);
     }
 
     @Override
@@ -137,7 +138,7 @@ public class AutoShootGarden extends OpMode {
         telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
         telemetry.addData("Follower Mode", follower.mode());
 
-        if (launch_Done || System.currentTimeMillis() - startTime > 10_000) {
+        if (System.currentTimeMillis() - startTime > 10_000) {
             launcher.setVelocity(0);
             windmillServo.setPower(0);
             launcher.setPower(0);
@@ -179,7 +180,7 @@ public class AutoShootGarden extends OpMode {
         }
 
         if (!launch_Done) {
-            if (launcher.getVelocity() > 1173) {
+            if (launcher.getVelocity() >= TARGET_SPEED - 20) {
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
                 intakePower += 0.5;
