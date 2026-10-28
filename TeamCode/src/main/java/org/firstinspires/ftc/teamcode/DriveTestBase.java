@@ -114,6 +114,9 @@ public abstract class DriveTestBase extends OpMode {
     private static final long JIGGLE_HALF_MS = 150;
     // When x started being held for jiggling, or -1 when it isn't.
     private long jiggleSince = -1;
+    private boolean wasJiggling = false;
+    // True after left_trigger turns the intake on, until right_trigger is used.
+    private boolean intakeLatchedOn = false;
 
     private GoBildaPinpointDriver odo;
 
@@ -207,7 +210,8 @@ public abstract class DriveTestBase extends OpMode {
         double strafe = deadband(gamepad1.left_stick_x);
         double turn = deadband(gamepad1.right_stick_x);
         boolean sticksCentered = drive == 0 && strafe == 0 && turn == 0;
-        if (sticksCentered && gamepad1.x) {
+        boolean jiggling = sticksCentered && gamepad1.x;
+        if (jiggling) {
             long now = System.currentTimeMillis();
             if (jiggleSince < 0) {
                 jiggleSince = now;
@@ -241,7 +245,23 @@ public abstract class DriveTestBase extends OpMode {
             intake.setPower(1);
             leftIntakeServo.setPower(1);
             rightIntakeServo.setPower(1);
+            intakeLatchedOn = true;
         }
+        if (gamepad1.right_trigger_pressed) {
+            intakeLatchedOn = false;
+        }
+        // While jiggling, always run the intake inward to pull the balls in. When the
+        // jiggle ends, stop it again unless left_trigger had already turned it on.
+        if (jiggling) {
+            intake.setPower(1);
+            leftIntakeServo.setPower(1);
+            rightIntakeServo.setPower(1);
+        } else if (wasJiggling && !intakeLatchedOn) {
+            intake.setPower(0);
+            leftIntakeServo.setPower(0);
+            rightIntakeServo.setPower(0);
+        }
+        wasJiggling = jiggling;
         // dpad_down = home + 90 degrees, dpad_up = home (mirrored on each side).
         // Holding dpad_left / dpad_right moves it slowly and continuously.
         double now = getRuntime();
