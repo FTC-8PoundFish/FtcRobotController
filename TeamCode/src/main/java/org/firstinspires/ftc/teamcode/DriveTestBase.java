@@ -267,7 +267,7 @@ public abstract class DriveTestBase extends OpMode {
         double now = getRuntime();
         double dt = lastLoopTime < 0 ? 0 : now - lastLoopTime;
         lastLoopTime = now;
-        if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left || gamepad1.dpad_right) {
+        if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left || gamepad1.dpad_right || gamepad1.x) {
             if (gamepad1.dpad_down){
                 flowerPos = FLOWER_HOME + FLOWER_90_DEG;
             } else if (gamepad1.dpad_up){
