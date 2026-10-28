@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -13,10 +14,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Call stop() (or reverse()) whenever you're not feeding; the next feed() then starts a
  * fresh cycle with a full forward spin.
  */
+@Config
 public class WindmillFeeder {
 
     public static long ON_MILLS = 240;
-    public static long OFF_MILLS = 500; //160
+    public static long OFF_MILLS = 500;
 
     private final CRServo servo;
     private final ElapsedTime timer = new ElapsedTime();
