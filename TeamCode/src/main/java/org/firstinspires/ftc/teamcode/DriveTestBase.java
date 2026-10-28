@@ -210,18 +210,18 @@ public abstract class DriveTestBase extends OpMode {
         double strafe = deadband(gamepad1.left_stick_x);
         double turn = deadband(gamepad1.right_stick_x);
         boolean sticksCentered = drive == 0 && strafe == 0 && turn == 0;
-        boolean jiggling = sticksCentered && gamepad1.x;
-        if (jiggling) {
-            long now = System.currentTimeMillis();
-            if (jiggleSince < 0) {
-                jiggleSince = now;
-            }
-            boolean forwardHalf = ((now - jiggleSince) / JIGGLE_HALF_MS) % 2 == 0;
-            drive = forwardHalf ? JIGGLE_POWER : -JIGGLE_POWER;
-            telemetry.addData("Jiggle", forwardHalf ? "forward" : "back");
-        } else {
-            jiggleSince = -1;
-        }
+//        boolean jiggling = sticksCentered && gamepad1.x;
+//        if (jiggling) {
+//            long now = System.currentTimeMillis();
+//            if (jiggleSince < 0) {
+//                jiggleSince = now;
+//            }
+//            boolean forwardHalf = ((now - jiggleSince) / JIGGLE_HALF_MS) % 2 == 0;
+//            drive = forwardHalf ? JIGGLE_POWER : -JIGGLE_POWER;
+//            telemetry.addData("Jiggle", forwardHalf ? "forward" : "back");
+//        } else {
+//            jiggleSince = -1;
+//        }
         double[] speeds = {
                 (drive + strafe + turn),
                 (drive - strafe - turn),
@@ -252,16 +252,16 @@ public abstract class DriveTestBase extends OpMode {
         }
         // While jiggling, always run the intake inward to pull the balls in. When the
         // jiggle ends, stop it again unless left_trigger had already turned it on.
-        if (jiggling) {
-            intake.setPower(1);
-            leftIntakeServo.setPower(1);
-            rightIntakeServo.setPower(1);
-        } else if (wasJiggling && !intakeLatchedOn) {
-            intake.setPower(0);
-            leftIntakeServo.setPower(0);
-            rightIntakeServo.setPower(0);
-        }
-        wasJiggling = jiggling;
+//        if (jiggling) {
+//            intake.setPower(1);
+//            leftIntakeServo.setPower(1);
+//            rightIntakeServo.setPower(1);
+//        } else if (wasJiggling && !intakeLatchedOn) {
+//            intake.setPower(0);
+//            leftIntakeServo.setPower(0);
+//            rightIntakeServo.setPower(0);
+//        }
+//        wasJiggling = jiggling;
         // dpad_down = home + 90 degrees, dpad_up = home (mirrored on each side).
         // Holding dpad_left / dpad_right moves it slowly and continuously.
         double now = getRuntime();
@@ -276,6 +276,8 @@ public abstract class DriveTestBase extends OpMode {
                 flowerPos = flowerPos + FLOWER_NUDGE_PER_SEC * dt;
             } else if (gamepad1.dpad_right){
                 flowerPos = flowerPos - FLOWER_NUDGE_PER_SEC * dt;
+            } else if (gamepad1.x) {
+                flowerPos = FLOWER_HOME + 0.36;
             }
             flowerPos = Math.max(0.0, Math.min(1.0, flowerPos));
             rightFlowerIntakeServo.setPosition(flowerPos);
