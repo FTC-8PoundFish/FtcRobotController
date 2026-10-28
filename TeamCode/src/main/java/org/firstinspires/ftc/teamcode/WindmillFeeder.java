@@ -17,8 +17,21 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @Config
 public class WindmillFeeder {
 
-    public static long ON_MILLS = 240;
-    public static long OFF_MILLS = 500;
+    private static final long DEFAULT_ON_MILLS = 240;
+    private static final long DEFAULT_OFF_MILLS = 500;
+
+    // Tunable on FTC Dashboard. Read through onMillis() / offMillis(), which fall back to
+    // the default if a field comes back as 0 (e.g. a cleared dashboard box).
+    public static long ON_MILLS = DEFAULT_ON_MILLS;
+    public static long OFF_MILLS = DEFAULT_OFF_MILLS;
+
+    private static long onMillis() {
+        return ON_MILLS != 0 ? ON_MILLS : DEFAULT_ON_MILLS;
+    }
+
+    private static long offMillis() {
+        return OFF_MILLS != 0 ? OFF_MILLS : DEFAULT_OFF_MILLS;
+    }
 
     private final CRServo servo;
     private final ElapsedTime timer = new ElapsedTime();
@@ -33,8 +46,9 @@ public class WindmillFeeder {
             feeding = true;
             timer.reset();
         }
-        double cycleNano = timer.milliseconds() % (ON_MILLS + OFF_MILLS);
-        if (cycleNano < ON_MILLS) {
+        long onMillis = onMillis();
+        double cycleNano = timer.milliseconds() % (onMillis + offMillis());
+        if (cycleNano < onMillis) {
             servo.setPower(1);
         } else {
             servo.setPower(0);

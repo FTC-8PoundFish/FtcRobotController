@@ -125,7 +125,7 @@ public class AutoShootGarden extends OpMode {
     public void start() {
         startTime = System.currentTimeMillis();
         schedule(follow(follower, startToShoot()));
-        launcher.setVelocity(launcherTargetVelocity);
+        launcher.setVelocity(launcherTargetVelocity());
     }
 
     @Override

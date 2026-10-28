@@ -80,8 +80,8 @@ public class AutoShootFirst extends OpMode {
                 instant(() -> autoStage = "driving to shootPose"),
                 follow(follower, startToShoot()),
                 instant(() -> {
-                    autoStage = "launching with speed:" + launcherTargetVelocity;
-                    launcher.setVelocity(launcherTargetVelocity);
+                    autoStage = "launching with speed:" + launcherTargetVelocity();
+                    launcher.setVelocity(launcherTargetVelocity());
                     intake.setPower(1);
                     launching = true;  // loop() feeds the windmill while this is true
                 }),

@@ -30,10 +30,10 @@
 package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
-import static org.firstinspires.ftc.teamcode.FlowerConfig.FLOWER_90_DEG;
-import static org.firstinspires.ftc.teamcode.FlowerConfig.FLOWER_HOME;
-import static org.firstinspires.ftc.teamcode.FlowerConfig.FLOWER_NECTAR_BLOCK;
-import static org.firstinspires.ftc.teamcode.FlowerConfig.FLOWER_NUDGE_PER_SEC;
+import static org.firstinspires.ftc.teamcode.FlowerConfig.flower90Deg;
+import static org.firstinspires.ftc.teamcode.FlowerConfig.flowerHome;
+import static org.firstinspires.ftc.teamcode.FlowerConfig.flowerNectarBlock;
+import static org.firstinspires.ftc.teamcode.FlowerConfig.flowerNudgePerSec;
 import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
 import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
 
@@ -75,7 +75,7 @@ public class DriveTest extends OpMode {
 
     // Warm-up speed the launcher idles at between shots so it spins up faster.
     private static int launcherIdleVelocity() {
-        return launcherTargetVelocity - 100;
+        return launcherTargetVelocity() - 100;
     }
 //    private TagAimer tagAimer;
 
@@ -141,9 +141,9 @@ public class DriveTest extends OpMode {
         leftflowerIntakeServo = hardwareMap.get(Servo.class, "flowey");
         rightFlowerIntakeServo.setDirection(Servo.Direction.REVERSE);
         leftflowerIntakeServo.setDirection(Servo.Direction.FORWARD);
-        // Read FLOWER_HOME here rather than at construction so a dashboard change applies
+        // Read flowerHome() here rather than at construction so a dashboard change applies
         // the next time this OpMode is initialized.
-        flowerPos = FLOWER_HOME;
+        flowerPos = flowerHome();
         rightFlowerIntakeServo.setPosition(flowerPos);
         leftflowerIntakeServo.setPosition(flowerPos);
 //        follower = Constants.create(hardwareMap);
@@ -191,7 +191,7 @@ public class DriveTest extends OpMode {
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d) flower (%.2f)",
-                launcherTargetVelocity,
+                launcherTargetVelocity(),
                 launcherMinVelocity(),
                 flowerPos);
         telemetry.update();
@@ -263,15 +263,15 @@ public class DriveTest extends OpMode {
         lastLoopTime = now;
         if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left || gamepad1.dpad_right || gamepad1.x) {
             if (gamepad1.dpad_down){
-                flowerPos = FLOWER_HOME + FLOWER_90_DEG;
+                flowerPos = flowerHome() + flower90Deg();
             } else if (gamepad1.dpad_up){
-                flowerPos = FLOWER_HOME;
+                flowerPos = flowerHome();
             } else if (gamepad1.dpad_left){
-                flowerPos = flowerPos + FLOWER_NUDGE_PER_SEC * dt;
+                flowerPos = flowerPos + flowerNudgePerSec() * dt;
             } else if (gamepad1.dpad_right){
-                flowerPos = flowerPos - FLOWER_NUDGE_PER_SEC * dt;
+                flowerPos = flowerPos - flowerNudgePerSec() * dt;
             } else if (gamepad1.x) {
-                flowerPos = FLOWER_HOME + FLOWER_NECTAR_BLOCK;
+                flowerPos = flowerHome() + flowerNectarBlock();
             }
             flowerPos = Math.max(0.0, Math.min(1.0, flowerPos));
             rightFlowerIntakeServo.setPosition(flowerPos);
@@ -301,7 +301,7 @@ public class DriveTest extends OpMode {
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d) flower (%f)",
-                launcherTargetVelocity,
+                launcherTargetVelocity(),
                 launcherMinVelocity(),
                 rightFlowerIntakeServo.getPosition());
         telemetry.addData(
@@ -314,7 +314,7 @@ public class DriveTest extends OpMode {
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d)",
-                launcherTargetVelocity,
+                launcherTargetVelocity(),
                 launcherMinVelocity());
         odo.update();
         Pose2D position = odo.getPosition();
@@ -352,7 +352,7 @@ public class DriveTest extends OpMode {
             if (rightBumperHeldSince < 0) {
                 rightBumperHeldSince = System.currentTimeMillis();
             }
-            launcher.setVelocity(launcherTargetVelocity);
+            launcher.setVelocity(launcherTargetVelocity());
             telemetry.addData("launcher get speed", "launcher get speed %f", launcher.getVelocity());
         } else {
             telemetry.addData("launcher idle", "launcher idle %d", launcherIdleVelocity());

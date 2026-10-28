@@ -8,15 +8,29 @@ import com.acmerobotics.dashboard.config.Config;
  *
  * The OpModes read these every time they use them, so a change on the dashboard takes
  * effect right away. The feed threshold always follows the target: target - gap.
+ *
+ * Read the values through the methods below, not the fields: if a field comes back as 0
+ * (e.g. a cleared dashboard box), the method falls back to the default.
  */
 @Config
 public class LauncherConfig {
+    private static final int DEFAULT_LAUNCHER_TARGET_VELOCITY = 1225;
+    private static final int DEFAULT_LAUNCHER_GAP = 25;
+
     // Launcher speed to shoot at.
-    public static int launcherTargetVelocity = 1225;
+    public static int launcherTargetVelocity = DEFAULT_LAUNCHER_TARGET_VELOCITY;
     // Feed only once the launcher is within this much of launcherTargetVelocity.
-    public static int launcherGap = 25;
+    public static int launcherGap = DEFAULT_LAUNCHER_GAP;
+
+    public static int launcherTargetVelocity() {
+        return launcherTargetVelocity != 0 ? launcherTargetVelocity : DEFAULT_LAUNCHER_TARGET_VELOCITY;
+    }
+
+    public static int launcherGap() {
+        return launcherGap != 0 ? launcherGap : DEFAULT_LAUNCHER_GAP;
+    }
 
     public static int launcherMinVelocity() {
-        return launcherTargetVelocity - launcherGap;
+        return launcherTargetVelocity() - launcherGap();
     }
 }

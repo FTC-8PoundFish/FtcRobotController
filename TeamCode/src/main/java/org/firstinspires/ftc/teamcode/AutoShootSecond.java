@@ -168,7 +168,7 @@ public class AutoShootSecond extends OpMode {
 //                    String tag = (newTagId >= 0) ? " detect_tag " : " timeout";
 //                    autoStage = "launching" + tag;
                     autoStage = "launching";
-                    launcher.setVelocity(launcherTargetVelocity);
+                    launcher.setVelocity(launcherTargetVelocity());
                     launching = true;  // loop() feeds the windmill while this is true
                 }),
                 waitMs(10_000),
@@ -242,7 +242,7 @@ public class AutoShootSecond extends OpMode {
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d)",
-                launcherTargetVelocity,
+                launcherTargetVelocity(),
                 launcherMinVelocity());
         telemetry.update();
 //        if (gamepad1.right_bumper) {

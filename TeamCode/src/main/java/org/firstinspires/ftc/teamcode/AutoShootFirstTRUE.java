@@ -100,7 +100,7 @@ public class AutoShootFirstTRUE extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
-        launcher.setVelocity(launcherTargetVelocity);
+        launcher.setVelocity(launcherTargetVelocity());
         intake.setPower(1);
     }
 
