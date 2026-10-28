@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /*
- * Limelight AprilTag aiming shared by LimelightAimBase and DriveTestBase. aimTurn() returns the
+ * Limelight AprilTag aiming shared by LimelightAimBase and DriveTest. aimTurn() returns the
  * turn power that rotates the robot so the camera faces the center between the 2 middle tags
  * of a group of 4 of this color:
  *   red:  30-33 (aim between 31 & 32) or 34-37 (between 35 & 36)
@@ -19,7 +19,7 @@ import java.util.List;
  */
 public class TagAimer {
 
-    private static final int APRILTAG_PIPELINE = 1;  // same pipeline as AutoShootSecondBase
+    private static final int APRILTAG_PIPELINE = 1;  // same pipeline as AutoShootSecond
 
     // Turn power per degree of error. Flip the sign if the robot turns away from the tags.
     private static final double AIM_KP = 0.02;

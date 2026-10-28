@@ -30,10 +30,13 @@
 package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
+import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
 
 import com.pedropathing.follower.Follower;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -57,27 +60,20 @@ import com.qualcomm.robotcore.hardware.Servo;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  *
- * Shared TeleOp for the DriveTest* OpModes. Each subclass picks the launcher target velocity;
- * the minimum (feed) velocity is always target - 25. The speeds are per-instance, so
- * adjusting them here never changes Constants.
+ * Launcher speeds come from LauncherConfig (tunable on FTC Dashboard).
  *
  * Limelight aiming (hold x to auto-rotate toward a color's AprilTags, see TagAimer) is
  * commented out for now. To bring it back, pass the alliance color (red = true/false)
  * into TagAimer.
  */
-public abstract class DriveTestBase extends OpMode {
+@TeleOp(name = "DriveTest", group = "OpMode")
+public class DriveTest extends OpMode {
 
-    private int launcherTargetVelocity;
-    private int launcherMinVelocity;
     // Warm-up speed the launcher idles at between shots so it spins up faster.
-    private int launcherIdleVelocity;
-//    private TagAimer tagAimer;
-
-    protected DriveTestBase(int launcherTargetVelocity) {
-        this.launcherTargetVelocity = launcherTargetVelocity;
-        this.launcherMinVelocity = launcherTargetVelocity - 25;
-        this.launcherIdleVelocity = launcherTargetVelocity - 100;
+    private static int launcherIdleVelocity() {
+        return launcherTargetVelocity - 100;
     }
+//    private TagAimer tagAimer;
 
     private DcMotor frontRight, frontLeft, backRight, backLeft;
     private DcMotorEx launcher = null;
@@ -126,7 +122,7 @@ public abstract class DriveTestBase extends OpMode {
 
     @Override
     public void start(){
-        launcher.setVelocity(launcherIdleVelocity);
+        launcher.setVelocity(launcherIdleVelocity());
     }
 
 
@@ -198,7 +194,7 @@ public abstract class DriveTestBase extends OpMode {
                 "Speed",
                 "target (%d), min (%d) flower (%.2f)",
                 launcherTargetVelocity,
-                launcherMinVelocity,
+                launcherMinVelocity(),
                 flowerPos);
         telemetry.update();
 
@@ -308,7 +304,7 @@ public abstract class DriveTestBase extends OpMode {
                 "Speed",
                 "target (%d), min (%d) flower (%f)",
                 launcherTargetVelocity,
-                launcherMinVelocity,
+                launcherMinVelocity(),
                 rightFlowerIntakeServo.getPosition());
         telemetry.addData(
                 "Motors",
@@ -321,7 +317,7 @@ public abstract class DriveTestBase extends OpMode {
                 "Speed",
                 "target (%d), min (%d)",
                 launcherTargetVelocity,
-                launcherMinVelocity);
+                launcherMinVelocity());
         odo.update();
         Pose2D position = odo.getPosition();
         telemetry.addData(
@@ -361,8 +357,8 @@ public abstract class DriveTestBase extends OpMode {
             launcher.setVelocity(launcherTargetVelocity);
             telemetry.addData("launcher get speed", "launcher get speed %f", launcher.getVelocity());
         } else {
-            telemetry.addData("launcher idle", "launcher idle %d", launcherIdleVelocity);
-            launcher.setVelocity(launcherIdleVelocity);
+            telemetry.addData("launcher idle", "launcher idle %d", launcherIdleVelocity());
+            launcher.setVelocity(launcherIdleVelocity());
             rightBumperHeldSince = -1;
         }
         telemetry.update();
@@ -379,7 +375,7 @@ public abstract class DriveTestBase extends OpMode {
         boolean heldLongEnough = rightBumperHeldSince >= 0
                 && System.currentTimeMillis() - rightBumperHeldSince > 5_000;
         if (gamepad1.right_bumper
-                && (launcher.getVelocity() > launcherMinVelocity || heldLongEnough)) {
+                && (launcher.getVelocity() > launcherMinVelocity() || heldLongEnough)) {
             windmillFeeder.feed();
         } else {
             if (gamepad1.left_bumper) {

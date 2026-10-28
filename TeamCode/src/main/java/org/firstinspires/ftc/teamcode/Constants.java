@@ -17,9 +17,8 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
-    // Launcher flywheel speeds used by DriveTest.
-    // The DriveTest<target> and AutoShootFirst/Second<target> OpModes set their own
-    // speeds via DriveTestBase / AutoShootFirstBase / AutoShootSecondBase.
+    // Not used anymore:
+    // DriveTest / AutoShootFirst / AutoShootSecond use LauncherConfig instead
     public static int LAUNCHER_TARGET_VELOCITY = 1180; //2678 RPM
     public static int LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 20;
 

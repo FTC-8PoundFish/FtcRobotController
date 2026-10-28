@@ -29,19 +29,16 @@ import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.pedropathing.ivy.commands.Commands.waitUntil;
 
+import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
+import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+
 /*
- * Shared Auto for the AutoShootSecond* OpModes. Each subclass picks the launcher target velocity;
- * the minimum (feed) velocity is always target - 25.
+ * Launcher speeds come from LauncherConfig (tunable on FTC Dashboard).
  */
-public abstract class AutoShootSecondBase extends OpMode {
-
-    private final int launcherTargetVelocity;
-    private final int launcherMinVelocity;
-
-    protected AutoShootSecondBase(int launcherTargetVelocity) {
-        this.launcherTargetVelocity = launcherTargetVelocity;
-        this.launcherMinVelocity = launcherTargetVelocity - 25;
-    }
+@Autonomous(name = "AutoShootSecond", group = "OpMode")
+public class AutoShootSecond extends OpMode {
 
     private long startTime;
 
@@ -246,7 +243,7 @@ public abstract class AutoShootSecondBase extends OpMode {
                 "Speed",
                 "target (%d), min (%d)",
                 launcherTargetVelocity,
-                launcherMinVelocity);
+                launcherMinVelocity());
         telemetry.update();
 //        if (gamepad1.right_bumper) {
 //            long start = System.currentTimeMillis();
@@ -306,7 +303,7 @@ public abstract class AutoShootSecondBase extends OpMode {
 //        telemetry.addData("New tag", newTagId >= 0 ? String.valueOf(newTagId) : "none");
 
         if (launching) {
-            if (launcher.getVelocity() > launcherMinVelocity) {
+            if (launcher.getVelocity() > launcherMinVelocity()) {
                 telemetry.addData("launch start", "launch_speed_reached");
                 windmillFeeder.feed();
             } else {
