@@ -14,13 +14,20 @@ import com.acmerobotics.dashboard.config.Config;
  */
 @Config
 public class LauncherConfig {
-    private static final int DEFAULT_LAUNCHER_TARGET_VELOCITY = 1225;
+    private static final int DEFAULT_LAUNCHER_TARGET_VELOCITY = 1195;
     private static final int DEFAULT_LAUNCHER_GAP = 25;
+
+    private static final int DEFAULT_AUTO_LAUNCHER_TARGET_VELOCITY = 1187;
+    private static final int DEFAULT_AUTO_LAUNCHER_GAP = 25;
 
     // Launcher speed to shoot at.
     public static int launcherTargetVelocity = DEFAULT_LAUNCHER_TARGET_VELOCITY;
     // Feed only once the launcher is within this much of launcherTargetVelocity.
     public static int launcherGap = DEFAULT_LAUNCHER_GAP;
+
+    public static int autoLauncherTargetVelocity = DEFAULT_AUTO_LAUNCHER_TARGET_VELOCITY;
+    // Feed only once the launcher is within this much of launcherTargetVelocity.
+    public static int autoLauncherGap = DEFAULT_AUTO_LAUNCHER_GAP;
 
     public static int launcherTargetVelocity() {
         return launcherTargetVelocity != 0 ? launcherTargetVelocity : DEFAULT_LAUNCHER_TARGET_VELOCITY;
@@ -32,5 +39,17 @@ public class LauncherConfig {
 
     public static int launcherMinVelocity() {
         return launcherTargetVelocity() - launcherGap();
+    }
+
+    public static int autoLauncherTargetVelocity() {
+        return autoLauncherTargetVelocity != 0 ? autoLauncherTargetVelocity : DEFAULT_AUTO_LAUNCHER_TARGET_VELOCITY;
+    }
+
+    public static int autoLauncherGap() {
+        return autoLauncherGap != 0 ? autoLauncherGap : DEFAULT_AUTO_LAUNCHER_GAP;
+    }
+
+    public static int autoLauncherMinVelocity() {
+        return autoLauncherTargetVelocity() - autoLauncherGap();
     }
 }

@@ -73,12 +73,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 @TeleOp(name = "DriveTest", group = "OpMode")
 public class DriveTest extends OpMode {
 
-    // Warm-up speed the launcher idles at between shots so it spins up faster.
-    private static int launcherIdleVelocity() {
-        return launcherTargetVelocity() - 100;
-    }
-//    private TagAimer tagAimer;
-
     private DcMotor frontRight, frontLeft, backRight, backLeft;
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -117,7 +111,6 @@ public class DriveTest extends OpMode {
 
     @Override
     public void start(){
-        launcher.setVelocity(launcherIdleVelocity());
     }
 
 
@@ -355,9 +348,8 @@ public class DriveTest extends OpMode {
             launcher.setVelocity(launcherTargetVelocity());
             telemetry.addData("launcher get speed", "launcher get speed %f", launcher.getVelocity());
         } else {
-            telemetry.addData("launcher idle", "launcher idle %d", launcherIdleVelocity());
-            launcher.setVelocity(launcherIdleVelocity());
             rightBumperHeldSince = -1;
+            launcher.setVelocity(0);
         }
         telemetry.update();
 

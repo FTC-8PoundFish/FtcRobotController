@@ -1,4 +1,5 @@
 package org.firstinspires.ftc.teamcode;
+import com.acmerobotics.dashboard.config.Config;
 import com.pedropathing.follower.Follower;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
@@ -22,12 +23,15 @@ import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
+import static org.firstinspires.ftc.teamcode.LauncherConfig.autoLauncherMinVelocity;
+import static org.firstinspires.ftc.teamcode.LauncherConfig.autoLauncherTargetVelocity;
 import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
 import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
 
 @Autonomous(name = "AutoShootGarden", group = "OpMode")
+@Config
 public class AutoShootGarden extends OpMode {
-
+    public static int SHOOT_HEADING = 0;
     private long startTime;
 
     boolean launch_Done = false;
@@ -40,7 +44,7 @@ public class AutoShootGarden extends OpMode {
     private final Pose gardenPose = p.of(144,0,0);
     private final Pose gardenAproach = p.of(130,0,0);
     private static final int forward = 4;
-    private final Pose shootPose = p.of(144 - forward, 48, 10);
+    private final Pose shootPose = p.of(144 - forward, 48, SHOOT_HEADING);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -52,12 +56,13 @@ public class AutoShootGarden extends OpMode {
     boolean kaboom = false;
     boolean boom = false;
 
+    // Which step of the auto we're in; shown every loop.
+    private String phase = "waiting for start";
+
     private GoBildaPinpointDriver odo;
 
     private WindmillFeeder windmillFeeder;
 
-
-    public static int Launcher_Velocity = 0;
 
     //poses from before
     // other poses...
@@ -125,7 +130,8 @@ public class AutoShootGarden extends OpMode {
     public void start() {
         startTime = System.currentTimeMillis();
         schedule(follow(follower, startToShoot()));
-        launcher.setVelocity(launcherTargetVelocity());
+        launcher.setVelocity(autoLauncherTargetVelocity());
+        phase = "driving to shootPose + spinning up launcher";
     }
 
     @Override
@@ -134,6 +140,11 @@ public class AutoShootGarden extends OpMode {
         follower.update();
         Scheduler.execute();
 
+        telemetry.addData("Phase", phase);
+        telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
+        telemetry.addData("Launcher", "target %d, min %d, actual %.0f",
+                autoLauncherTargetVelocity(), autoLauncherMinVelocity(), launcher.getVelocity());
+        telemetry.addData("Shoot heading (deg)", SHOOT_HEADING);
         telemetry.addData("X", follower.pose().x());
         telemetry.addData("Y", follower.pose().y());
         telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
@@ -148,7 +159,9 @@ public class AutoShootGarden extends OpMode {
             rightIntakeServo.setPower(1);
             if (!launch_Done) {
                 launch_Done = true;
+                phase = "driving to garden approach";
                 telemetry.addData("launch done", "set launch done");
+                launcher.setVelocity(0);
                 intake.setPower(1);
                 schedule(autoRoutine());
                 intake.setPower(1);
@@ -156,6 +169,7 @@ public class AutoShootGarden extends OpMode {
             // Checked every loop (not just once above) so it actually fires at the 20s mark.
             if (!stopped && System.currentTimeMillis() - startTime > 12_000) {
                 stopped = true;
+                phase = "driving into garden";
                 Constants.foresightConfig.maxPathSpeed.set(1.0);
 
                 Scheduler.reset();  // cancel whatever command is still running
@@ -166,22 +180,26 @@ public class AutoShootGarden extends OpMode {
             }
             if (!boom && System.currentTimeMillis() - startTime > 19_000) {
                 boom = true;
+                phase = "garden to seccondPose";
                 Scheduler.reset();  // cancel whatever command is still running
                 follower.stop();    // and stop the drivetrain from following its path
                 schedule(follow(follower, GardenToSecond()));
             }
             if (!kaboom && System.currentTimeMillis() - startTime > 21_000) {
                 kaboom = true;
+                phase = "parking";
                 Scheduler.reset();  // cancel whatever command is still running
                 follower.stop();    // and stop the drivetrain from following its path
                 schedule(follow(follower, park()));
-                telemetry.addData("parking","now");
             }
+            // Without this the Driver Station screen froze at the 10s mark.
+            telemetry.update();
             return;
         }
 
         if (!launch_Done) {
-            if (launcher.getVelocity() >= launcherMinVelocity()) {
+            if (launcher.getVelocity() >= autoLauncherMinVelocity()) {
+                phase = "shooting";
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
                 intakePower += 0.5;
