@@ -21,8 +21,8 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
-import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
-import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.launcherTargetVelocity;
 
 @Autonomous(name = "AutoShootFirstTRUE", group = "OpMode")
 public class AutoShootFirstTRUE extends OpMode {

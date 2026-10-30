@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.config;
 
 import com.acmerobotics.dashboard.config.Config;
 
@@ -14,7 +14,7 @@ import com.acmerobotics.dashboard.config.Config;
  */
 @Config
 public class LauncherConfig {
-    private static final int DEFAULT_LAUNCHER_TARGET_VELOCITY = 1195;
+    private static final int DEFAULT_LAUNCHER_TARGET_VELOCITY = 1175;
     private static final int DEFAULT_LAUNCHER_GAP = 25;
 
     private static final int DEFAULT_AUTO_LAUNCHER_TARGET_VELOCITY = 1187;

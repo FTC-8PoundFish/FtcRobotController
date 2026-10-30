@@ -30,12 +30,12 @@
 package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
-import static org.firstinspires.ftc.teamcode.FlowerConfig.flower90Deg;
-import static org.firstinspires.ftc.teamcode.FlowerConfig.flowerHome;
-import static org.firstinspires.ftc.teamcode.FlowerConfig.flowerNectarBlock;
-import static org.firstinspires.ftc.teamcode.FlowerConfig.flowerNudgePerSec;
-import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
-import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
+import static org.firstinspires.ftc.config.FlowerConfig.flower90Deg;
+import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
+import static org.firstinspires.ftc.config.FlowerConfig.flowerNectarBlock;
+import static org.firstinspires.ftc.config.FlowerConfig.flowerNudgePerSec;
+import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.launcherTargetVelocity;
 
 import com.pedropathing.follower.Follower;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
@@ -47,6 +47,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
+import org.firstinspires.ftc.config.LauncherConfig;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
@@ -191,24 +192,24 @@ public class DriveTest extends OpMode {
 
     }
 
+    // init() runs only once, so show the speed here too; a dashboard change made after
+    // pressing INIT then shows up right away.
+    @Override
+    public void init_loop() {
+        telemetry.addData(
+                "Speed",
+                "target (%d), min (%d) flower (%.2f)",
+                launcherTargetVelocity(),
+                launcherMinVelocity(),
+                flowerPos);
+        telemetry.update();
+    }
+
     @Override
     public void loop() {
         double drive = deadband(-gamepad1.left_stick_y);
         double strafe = deadband(gamepad1.left_stick_x);
         double turn = deadband(gamepad1.right_stick_x);
-        boolean sticksCentered = drive == 0 && strafe == 0 && turn == 0;
-//        boolean jiggling = sticksCentered && gamepad1.x;
-//        if (jiggling) {
-//            long now = System.currentTimeMillis();
-//            if (jiggleSince < 0) {
-//                jiggleSince = now;
-//            }
-//            boolean forwardHalf = ((now - jiggleSince) / JIGGLE_HALF_MS) % 2 == 0;
-//            drive = forwardHalf ? JIGGLE_POWER : -JIGGLE_POWER;
-//            telemetry.addData("Jiggle", forwardHalf ? "forward" : "back");
-//        } else {
-//            jiggleSince = -1;
-//        }
         double[] speeds = {
                 (drive + strafe + turn),
                 (drive - strafe - turn),
@@ -237,18 +238,6 @@ public class DriveTest extends OpMode {
         if (gamepad1.right_trigger_pressed) {
             intakeLatchedOn = false;
         }
-        // While jiggling, always run the intake inward to pull the balls in. When the
-        // jiggle ends, stop it again unless left_trigger had already turned it on.
-//        if (jiggling) {
-//            intake.setPower(1);
-//            leftIntakeServo.setPower(1);
-//            rightIntakeServo.setPower(1);
-//        } else if (wasJiggling && !intakeLatchedOn) {
-//            intake.setPower(0);
-//            leftIntakeServo.setPower(0);
-//            rightIntakeServo.setPower(0);
-//        }
-//        wasJiggling = jiggling;
         // dpad_down = home + 90 degrees, dpad_up = home (mirrored on each side).
         // Holding dpad_left / dpad_right moves it slowly and continuously.
         double now = getRuntime();
@@ -291,12 +280,12 @@ public class DriveTest extends OpMode {
         frontRight.setPower(speeds[1]);
         backLeft.setPower(speeds[2]);
         backRight.setPower(speeds[3]);
-        telemetry.addData(
-                "Speed",
-                "target (%d), min (%d) flower (%f)",
-                launcherTargetVelocity(),
-                launcherMinVelocity(),
-                rightFlowerIntakeServo.getPosition());
+//        telemetry.addData(
+//                "Speed",
+//                "target (%d), min (%d) flower (%f)",
+//                launcherTargetVelocity(),
+//                launcherMinVelocity(),
+//                rightFlowerIntakeServo.getPosition());
         telemetry.addData(
                 "Motors",
                 "frontLeft (%.2f), frontRight (%.2f), backLeft (%.2f), backRight (%.2f)",
@@ -304,11 +293,6 @@ public class DriveTest extends OpMode {
                 speeds[1],
                 speeds[2],
                 speeds[3]);
-        telemetry.addData(
-                "Speed",
-                "target (%d), min (%d)",
-                launcherTargetVelocity(),
-                launcherMinVelocity());
         odo.update();
         Pose2D position = odo.getPosition();
         telemetry.addData(
@@ -319,6 +303,13 @@ public class DriveTest extends OpMode {
                 leftflowerIntakeServo.getPosition(),
                 rightFlowerIntakeServo.getPosition()
         );
+        // Raw dashboard field vs. what the code actually uses (they differ only if the
+        // field is 0 and the default kicks in).
+        telemetry.addData(
+                "Target velocity",
+                "field (%d), method (%d)",
+                LauncherConfig.launcherTargetVelocity,
+                launcherTargetVelocity());
         telemetry.update();
     }
 
@@ -351,7 +342,8 @@ public class DriveTest extends OpMode {
             rightBumperHeldSince = -1;
             launcher.setVelocity(0);
         }
-        telemetry.update();
+        // No telemetry.update() here: loop() calls it once at the end. Calling it here too
+        // cleared everything added before it and could drop lines from the log.
 
         /*
          * Here we ask if the driver is currently pressing the right bumper, AND the launcher is

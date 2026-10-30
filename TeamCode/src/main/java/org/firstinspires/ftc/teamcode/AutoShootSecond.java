@@ -29,8 +29,8 @@ import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.pedropathing.ivy.commands.Commands.waitUntil;
 
-import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
-import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.launcherTargetVelocity;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 

@@ -1,5 +1,4 @@
 package org.firstinspires.ftc.teamcode;
-import com.acmerobotics.dashboard.config.Config;
 import com.pedropathing.follower.Follower;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
@@ -21,17 +20,26 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
+import static com.pedropathing.ivy.groups.Groups.race;
+import static com.pedropathing.ivy.groups.Groups.repeat;
+import static com.pedropathing.ivy.commands.Commands.instant;
+import static com.pedropathing.ivy.commands.Commands.lazy;
+import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
-import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
-import static org.firstinspires.ftc.teamcode.LauncherConfig.autoLauncherMinVelocity;
-import static org.firstinspires.ftc.teamcode.LauncherConfig.autoLauncherTargetVelocity;
-import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherMinVelocity;
-import static org.firstinspires.ftc.teamcode.LauncherConfig.launcherTargetVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherMinVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherTargetVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.launcherTargetVelocity;
+import static org.firstinspires.ftc.config.GardenConfig.GARDEN_DRIVE_MAX_MS;
+import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_HALF_MS;
+import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_INCHES;
+import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_TIMES;
+import static org.firstinspires.ftc.config.GardenConfig.SHOOT_HEADING;
 
+/*
+ * Tunables (SHOOT_HEADING, GARDEN_*) are in GardenConfig, tunable on FTC Dashboard.
+ */
 @Autonomous(name = "AutoShootGarden", group = "OpMode")
-@Config
 public class AutoShootGarden extends OpMode {
-    public static int SHOOT_HEADING = 0;
     private long startTime;
 
     boolean launch_Done = false;
@@ -44,7 +52,11 @@ public class AutoShootGarden extends OpMode {
     private final Pose gardenPose = p.of(144,0,0);
     private final Pose gardenAproach = p.of(130,0,0);
     private static final int forward = 4;
-    private final Pose shootPose = p.of(144 - forward, 48, SHOOT_HEADING);
+    // Built in start() (not here) so a SHOOT_HEADING change on the dashboard, even
+    // during INIT, is picked up when PLAY is pressed.
+    private Pose shootPose;
+    // SHOOT_HEADING as it was at PLAY, i.e. the heading actually being driven to.
+    private int shootHeadingUsed;
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -81,6 +93,32 @@ public class AutoShootGarden extends OpMode {
     }
     private Path startToShoot() {
         return line(startPose, shootPose).linear(startPose, shootPose);
+    }
+
+    // Drive into the garden, then rock back and forth around wherever the robot stopped.
+    private Command gardenAndJiggle() {
+        return sequential(
+                race(follow(follower, toGarden()), waitMs(GARDEN_DRIVE_MAX_MS)),
+                instant(() -> phase = "jiggling in garden"),
+                lazy(this::jiggle),
+                instant(() -> phase = "in garden"));
+    }
+
+    private Command jiggle() {
+        Pose here = follower.pose();
+        double heading = here.heading();
+        Pose anchor = p.of(here.x(), here.y(), Math.toDegrees(heading));
+        Pose back = p.of(
+                here.x() - GARDEN_JIGGLE_INCHES * Math.cos(heading),
+                here.y() - GARDEN_JIGGLE_INCHES * Math.sin(heading),
+                Math.toDegrees(heading));
+        return repeat(
+                sequential(
+                        race(follow(follower, line(anchor, back).linear(anchor, back)),
+                                waitMs(GARDEN_JIGGLE_HALF_MS)),
+                        race(follow(follower, line(back, anchor).linear(back, anchor)),
+                                waitMs(GARDEN_JIGGLE_HALF_MS))),
+                GARDEN_JIGGLE_TIMES);
     }
 
     private Command autoRoutine() {
@@ -129,9 +167,15 @@ public class AutoShootGarden extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
+        shootHeadingUsed = SHOOT_HEADING;
+        shootPose = p.of(144 - forward, 48, shootHeadingUsed);
         schedule(follow(follower, startToShoot()));
-        launcher.setVelocity(autoLauncherTargetVelocity());
-        phase = "driving to shootPose + spinning up launcher";
+        int speed = autoLauncherTargetVelocity();
+        if (speed < 100) {
+            throw new RuntimeException("wrong speed " + speed);
+        }
+        launcher.setVelocity(speed);
+        phase = "driving to shootPose: " + speed + ":" + shootPose;
     }
 
     @Override
@@ -144,7 +188,8 @@ public class AutoShootGarden extends OpMode {
         telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
         telemetry.addData("Launcher", "target %d, min %d, actual %.0f",
                 autoLauncherTargetVelocity(), autoLauncherMinVelocity(), launcher.getVelocity());
-        telemetry.addData("Shoot heading (deg)", SHOOT_HEADING);
+        telemetry.addData("Shoot heading (deg)", "using %d (dashboard now %d)",
+                shootHeadingUsed, SHOOT_HEADING);
         telemetry.addData("X", follower.pose().x());
         telemetry.addData("Y", follower.pose().y());
         telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
@@ -174,7 +219,7 @@ public class AutoShootGarden extends OpMode {
 
                 Scheduler.reset();  // cancel whatever command is still running
                 follower.stop();    // and stop the drivetrain from following its path
-                schedule(follow(follower, toGarden()));
+                schedule(gardenAndJiggle());
                 Constants.foresightConfig.maxPathSpeed.set(20.0);
 
             }

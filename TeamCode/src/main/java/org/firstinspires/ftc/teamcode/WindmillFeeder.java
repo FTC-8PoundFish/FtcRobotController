@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.acmerobotics.dashboard.config.Config;
+import static org.firstinspires.ftc.config.WindmillConfig.offMillis;
+import static org.firstinspires.ftc.config.WindmillConfig.onMillis;
+
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -13,25 +15,10 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *
  * Call stop() (or reverse()) whenever you're not feeding; the next feed() then starts a
  * fresh cycle with a full forward spin.
+ *
+ * The timings are in WindmillConfig, tunable on FTC Dashboard.
  */
-@Config
 public class WindmillFeeder {
-
-    private static final long DEFAULT_ON_MILLS = 240;
-    private static final long DEFAULT_OFF_MILLS = 500;
-
-    // Tunable on FTC Dashboard. Read through onMillis() / offMillis(), which fall back to
-    // the default if a field comes back as 0 (e.g. a cleared dashboard box).
-    public static long ON_MILLS = DEFAULT_ON_MILLS;
-    public static long OFF_MILLS = DEFAULT_OFF_MILLS;
-
-    private static long onMillis() {
-        return ON_MILLS != 0 ? ON_MILLS : DEFAULT_ON_MILLS;
-    }
-
-    private static long offMillis() {
-        return OFF_MILLS != 0 ? OFF_MILLS : DEFAULT_OFF_MILLS;
-    }
 
     private final CRServo servo;
     private final ElapsedTime timer = new ElapsedTime();
