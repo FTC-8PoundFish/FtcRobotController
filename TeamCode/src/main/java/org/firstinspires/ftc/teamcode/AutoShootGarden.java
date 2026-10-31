@@ -40,21 +40,25 @@ import static org.firstinspires.ftc.config.GardenConfig.SHOOT_HEADING;
 @Autonomous(name = "AutoShootGarden", group = "OpMode")
 public class AutoShootGarden extends OpMode {
     private long startTime;
+    private int shootHeadingUsed = SHOOT_HEADING;
 
     boolean launch_Done = false;
     boolean stopped = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
+    private final Pose shootPose = p.of(144-forward, 48, shootHeadingUsed);
     private final Pose startPose = p.of(144, 48, 0);
     private final Pose seccondPose = p.of(140, 20, 0);
     private final Pose park = p.of(56, 5, 0);
     private final Pose gardenPose = p.of(144,0,0);
+
     private final Pose gardenAproach = p.of(130,0,0);
-    // Built in start() (not here) so a SHOOT_HEADING or forward change on the dashboard, even
-    // during INIT, is picked up when PLAY is pressed.
-    private Pose shootPose;
+
+    // shootPose is set when INIT is pressed, so change SHOOT_HEADING or forward on the
+    // dashboard before INIT.
+
     // SHOOT_HEADING as it was at PLAY, i.e. the heading actually being driven to.
-    private int shootHeadingUsed;
+
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -91,6 +95,10 @@ public class AutoShootGarden extends OpMode {
     }
     private Path startToShoot() {
         return line(startPose, shootPose).linear(startPose, shootPose);
+    }
+
+    private static boolean samePose(Pose a, Pose b) {
+        return a.x() == b.x() && a.y() == b.y() && a.heading() == b.heading();
     }
 
     // Drive into the garden, then rock back and forth around wherever the robot stopped.
@@ -165,9 +173,11 @@ public class AutoShootGarden extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
-        shootHeadingUsed = SHOOT_HEADING;
-        shootPose = p.of(144-forward, 48, shootHeadingUsed);
-        schedule(follow(follower, startToShoot()));
+        // With forward = 0 and SHOOT_HEADING = 0 we already start at shootPose, so don't
+        // build or follow a zero-length path.
+        if (!samePose(startPose, shootPose)) {
+            schedule(follow(follower, startToShoot()));
+        }
         int speed = autoLauncherTargetVelocity();
         if (speed < 100) {
             throw new RuntimeException("wrong speed " + speed);

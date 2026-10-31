@@ -41,9 +41,9 @@ public class AutoShootFirst extends OpMode {
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 60, 0);
 
-    // Drive forward LauncherConfig.forward inches (Dashboard, default 4) to shoot. Built in
-    // start() so a dashboard change made during INIT is picked up at PLAY.
-    private Pose shootPose;
+    // Drive forward LauncherConfig.forward inches (Dashboard, default 4) to shoot. Set when
+    // INIT is pressed, so change forward on the dashboard before INIT.
+    private final Pose shootPose = p.of(144 - forward, 60, 0);
 
     private final Pose seccondPose = p.of(124, 40, 0);
     private final Pose park = p.of(60, 20, 0);
@@ -65,6 +65,10 @@ public class AutoShootFirst extends OpMode {
     private Path startToShoot() {
         return line(startPose, shootPose).linear(startPose, shootPose);
     }
+
+    private static boolean samePose(Pose a, Pose b) {
+        return a.x() == b.x() && a.y() == b.y() && a.heading() == b.heading();
+    }
     private Path shootToSeccond() {
         return line(shootPose, seccondPose).linear(shootPose, seccondPose);
     }
@@ -74,9 +78,15 @@ public class AutoShootFirst extends OpMode {
 
     // The whole auto. Each step starts as soon as the previous one finishes.
     private Command autoRoutine() {
+        // With forward = 0 we already start at shootPose, so don't build or follow a
+        // zero-length path.
+        Command driveToShoot = samePose(startPose, shootPose)
+                ? instant(() -> autoStage = "already at shootPose")
+                : sequential(
+                        instant(() -> autoStage = "driving to shootPose"),
+                        follow(follower, startToShoot()));
         return sequential(
-                instant(() -> autoStage = "driving to shootPose"),
-                follow(follower, startToShoot()),
+                driveToShoot,
                 instant(() -> {
                     autoStage = "launching with speed:" + autoLauncherTargetVelocity();
                     launcher.setVelocity(autoLauncherTargetVelocity());
@@ -132,7 +142,6 @@ public class AutoShootFirst extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
-        shootPose = p.of(144 - forward, 60, 0);
         schedule(autoRoutine());
     }
 
