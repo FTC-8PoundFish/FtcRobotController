@@ -23,6 +23,7 @@ import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherTargetVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.forward;
 import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -40,9 +41,9 @@ public class AutoShootFirst extends OpMode {
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 60, 0);
 
-    // move forward for 4 inches to shoot
-    private static final int forward = 4;
-    private final Pose shootPose = p.of(144 - forward, 60, 0);
+    // Drive forward LauncherConfig.forward inches (Dashboard, default 4) to shoot. Built in
+    // start() so a dashboard change made during INIT is picked up at PLAY.
+    private Pose shootPose;
 
     private final Pose seccondPose = p.of(124, 40, 0);
     private final Pose park = p.of(60, 20, 0);
@@ -131,6 +132,7 @@ public class AutoShootFirst extends OpMode {
     @Override
     public void start() {
         startTime = System.currentTimeMillis();
+        shootPose = p.of(144 - forward, 60, 0);
         schedule(autoRoutine());
     }
 
