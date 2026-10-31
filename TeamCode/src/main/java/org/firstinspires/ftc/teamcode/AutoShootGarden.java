@@ -33,6 +33,8 @@ import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_HALF_MS;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_INCHES;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_TIMES;
 import static org.firstinspires.ftc.config.GardenConfig.SHOOT_HEADING;
+import static org.firstinspires.ftc.config.GardenConfig.GARDEN_PARK_X;
+import static org.firstinspires.ftc.config.GardenConfig.GARDEN_PARK_Y;
 
 /*
  * Tunables (SHOOT_HEADING, GARDEN_*) are in GardenConfig, tunable on FTC Dashboard.
@@ -49,7 +51,7 @@ public class AutoShootGarden extends OpMode {
     private final Pose shootPose = p.of(144-forward, 48, shootHeadingUsed);
     private final Pose startPose = p.of(144, 48, 0);
     private final Pose seccondPose = p.of(140, 20, 0);
-    private final Pose park = p.of(56, 5, 0);
+    private final Pose park = p.of(GARDEN_PARK_X, GARDEN_PARK_Y, 0);
     private final Pose gardenPose = p.of(144,0,0);
 
     private final Pose gardenAproach = p.of(130,0,0);

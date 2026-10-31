@@ -24,6 +24,8 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherTargetVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.forward;
+import static org.firstinspires.ftc.config.FirstConfig.FIRST_PARK_X;
+import static org.firstinspires.ftc.config.FirstConfig.FIRST_PARK_Y;
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherMinVelocity;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -31,7 +33,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 /*
  * Launcher speeds come from LauncherConfig (tunable on FTC Dashboard).
  */
-@Autonomous(name = "AutoShootFirst", group = "OpMode")
+//@Autonomous(name = "AutoShootFirst", group = "OpMode")
 public class AutoShootFirst extends OpMode {
 
     private long startTime;
@@ -46,7 +48,7 @@ public class AutoShootFirst extends OpMode {
     private final Pose shootPose = p.of(144 - forward, 60, 0);
 
     private final Pose seccondPose = p.of(124, 40, 0);
-    private final Pose park = p.of(60, 20, 0);
+    private final Pose park = p.of(FIRST_PARK_X, FIRST_PARK_Y, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;

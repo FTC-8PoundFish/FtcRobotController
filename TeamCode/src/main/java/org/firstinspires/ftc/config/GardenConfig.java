@@ -11,8 +11,12 @@ import com.acmerobotics.dashboard.config.Config;
  */
 @Config
 public class GardenConfig {
-    // Heading (degrees) at shootPose. Read when PLAY is pressed.
+    // Heading (degrees) at shootPose. Read when INIT is pressed.
     public static int SHOOT_HEADING = 0;
+
+    // Where AutoShootGarden parks (inches). Read when INIT is pressed.
+    public static double GARDEN_PARK_X = 64;
+    public static double GARDEN_PARK_Y = 5;
 
     // After driving into the garden, rock back and forth to shake balls into the intake
     // (like holding x in DriveTest). Each rock backs up GARDEN_JIGGLE_INCHES and returns.

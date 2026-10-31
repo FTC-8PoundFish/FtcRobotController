@@ -14,10 +14,10 @@ import com.acmerobotics.dashboard.config.Config;
  */
 @Config
 public class LauncherConfig {
-    private static final int DEFAULT_LAUNCHER_TARGET_VELOCITY = 1175;
+    private static final int DEFAULT_LAUNCHER_TARGET_VELOCITY = 1125;
     private static final int DEFAULT_LAUNCHER_GAP = 25;
 
-    private static final int DEFAULT_AUTO_LAUNCHER_TARGET_VELOCITY = 1187;
+    private static final int DEFAULT_AUTO_LAUNCHER_TARGET_VELOCITY = 1125;
     private static final int DEFAULT_AUTO_LAUNCHER_GAP = 25;
 
     // Launcher speed to shoot at.
@@ -31,7 +31,7 @@ public class LauncherConfig {
 
     // How many inches AutoShootFirst and AutoShootGarden drive forward from startPose to shootPose. 0 is
     // allowed (shoot from startPose). Read when PLAY is pressed.
-    public static int forward = 4;
+    public static int forward = 0;
 
 
     public static int launcherTargetVelocity() {
