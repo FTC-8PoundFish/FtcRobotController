@@ -24,7 +24,7 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherTargetVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.forward;
-import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherMinVelocity;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
@@ -150,7 +150,7 @@ public class AutoShootFirst extends OpMode {
         telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
 
         if (launching) {
-            if (launcher.getVelocity() > launcherMinVelocity()) {
+            if (launcher.getVelocity() > autoLauncherMinVelocity()) {
                 telemetry.addData("launch done", "launch_speed_reached");
                 windmillFeeder.feed();
                 intakePower += 0.5;
