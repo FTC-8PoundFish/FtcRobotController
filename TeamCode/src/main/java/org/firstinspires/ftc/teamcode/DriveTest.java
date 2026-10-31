@@ -220,7 +220,7 @@ public class DriveTest extends OpMode {
         if (gamepad1.right_trigger_pressed){
             intake.setPower(-1);
             leftIntakeServo.setPower(-1);
-            rightIntakeServo.setPower(-1);
+            rightIntakeServo.setPower(1);
             stopIntake = true;
         }
         if (stopIntake&&!gamepad1.right_trigger_pressed){
@@ -232,7 +232,7 @@ public class DriveTest extends OpMode {
             stopIntake = false;
             intake.setPower(1);
             leftIntakeServo.setPower(1);
-            rightIntakeServo.setPower(1);
+            rightIntakeServo.setPower(-1);
             intakeLatchedOn = true;
         }
         if (gamepad1.right_trigger_pressed) {

@@ -17,14 +17,13 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
-import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
+import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherTargetVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
-import static org.firstinspires.ftc.config.LauncherConfig.launcherTargetVelocity;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
@@ -50,9 +49,6 @@ public class AutoShootFirst extends OpMode {
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
-    private CRServo leftIntakeServo = null;
-    private CRServo rightIntakeServo = null;
-    private CRServo windmillServo = null;
     double intakePower;
 
     private GoBildaPinpointDriver odo;
@@ -61,6 +57,7 @@ public class AutoShootFirst extends OpMode {
 
     // Set by each step of autoRoutine() and shown every loop.
     private String autoStage = "waiting for start";
+    private CRServo windmillServo = null;
 
     //poses from before
     // other poses...
@@ -80,8 +77,8 @@ public class AutoShootFirst extends OpMode {
                 instant(() -> autoStage = "driving to shootPose"),
                 follow(follower, startToShoot()),
                 instant(() -> {
-                    autoStage = "launching with speed:" + launcherTargetVelocity();
-                    launcher.setVelocity(launcherTargetVelocity());
+                    autoStage = "launching with speed:" + autoLauncherTargetVelocity();
+                    launcher.setVelocity(autoLauncherTargetVelocity());
                     intake.setPower(1);
                     launching = true;  // loop() feeds the windmill while this is true
                 }),

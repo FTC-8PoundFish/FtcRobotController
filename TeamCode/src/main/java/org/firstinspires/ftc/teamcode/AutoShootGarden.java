@@ -18,7 +18,6 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
-import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.pedropathing.ivy.groups.Groups.race;
 import static com.pedropathing.ivy.groups.Groups.repeat;
@@ -28,7 +27,7 @@ import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherMinVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherTargetVelocity;
-import static org.firstinspires.ftc.config.LauncherConfig.launcherTargetVelocity;
+import static org.firstinspires.ftc.config.LauncherConfig.forward;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_DRIVE_MAX_MS;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_HALF_MS;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_INCHES;
@@ -51,8 +50,7 @@ public class AutoShootGarden extends OpMode {
     private final Pose park = p.of(56, 5, 0);
     private final Pose gardenPose = p.of(144,0,0);
     private final Pose gardenAproach = p.of(130,0,0);
-    private static final int forward = 4;
-    // Built in start() (not here) so a SHOOT_HEADING change on the dashboard, even
+    // Built in start() (not here) so a SHOOT_HEADING or forward change on the dashboard, even
     // during INIT, is picked up when PLAY is pressed.
     private Pose shootPose;
     // SHOOT_HEADING as it was at PLAY, i.e. the heading actually being driven to.
@@ -168,7 +166,7 @@ public class AutoShootGarden extends OpMode {
     public void start() {
         startTime = System.currentTimeMillis();
         shootHeadingUsed = SHOOT_HEADING;
-        shootPose = p.of(144 - forward, 48, shootHeadingUsed);
+        shootPose = p.of(144-forward, 48, shootHeadingUsed);
         schedule(follow(follower, startToShoot()));
         int speed = autoLauncherTargetVelocity();
         if (speed < 100) {

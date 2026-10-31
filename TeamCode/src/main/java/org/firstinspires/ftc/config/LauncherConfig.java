@@ -29,6 +29,11 @@ public class LauncherConfig {
     // Feed only once the launcher is within this much of launcherTargetVelocity.
     public static int autoLauncherGap = DEFAULT_AUTO_LAUNCHER_GAP;
 
+    // How many inches AutoShootGarden drives forward from startPose to shootPose. 0 is
+    // allowed (shoot from startPose). Read when PLAY is pressed.
+    public static int forward = 4;
+
+
     public static int launcherTargetVelocity() {
         return launcherTargetVelocity != 0 ? launcherTargetVelocity : DEFAULT_LAUNCHER_TARGET_VELOCITY;
     }

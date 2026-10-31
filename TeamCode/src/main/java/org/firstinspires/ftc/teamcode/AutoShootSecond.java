@@ -23,14 +23,14 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 //import java.util.HashSet;
 //import java.util.Set;
 
-import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.pedropathing.ivy.commands.Commands.waitUntil;
 
-import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
-import static org.firstinspires.ftc.config.LauncherConfig.launcherTargetVelocity;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_SHOOT;
+import static org.firstinspires.ftc.config.SecondConfig.secondLauncherMinVelocity;
+import static org.firstinspires.ftc.config.SecondConfig.secondLauncherTargetVelocity;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
@@ -167,9 +167,13 @@ public class AutoShootSecond extends OpMode {
                 instant(() -> {
 //                    String tag = (newTagId >= 0) ? " detect_tag " : " timeout";
 //                    autoStage = "launching" + tag;
-                    autoStage = "launching";
-                    launcher.setVelocity(launcherTargetVelocity());
-                    launching = true;  // loop() feeds the windmill while this is true
+                    if (SECOND_SHOOT) {
+                        autoStage = "launching:" + secondLauncherTargetVelocity();
+                        launcher.setVelocity(secondLauncherTargetVelocity());
+                        launching = true;  // loop() feeds the windmill while this is true
+                    } else {
+                        autoStage = "not shooting (SECOND_SHOOT off), waiting 10s";
+                    }
                 }),
                 waitMs(10_000),
                 instant(() -> {
@@ -242,8 +246,8 @@ public class AutoShootSecond extends OpMode {
         telemetry.addData(
                 "Speed",
                 "target (%d), min (%d)",
-                launcherTargetVelocity(),
-                launcherMinVelocity());
+                secondLauncherTargetVelocity(),
+                secondLauncherMinVelocity());
         telemetry.update();
 //        if (gamepad1.right_bumper) {
 //            long start = System.currentTimeMillis();
@@ -303,7 +307,7 @@ public class AutoShootSecond extends OpMode {
 //        telemetry.addData("New tag", newTagId >= 0 ? String.valueOf(newTagId) : "none");
 
         if (launching) {
-            if (launcher.getVelocity() > launcherMinVelocity()) {
+            if (launcher.getVelocity() > secondLauncherMinVelocity()) {
                 telemetry.addData("launch start", "launch_speed_reached");
                 windmillFeeder.feed();
             } else {
