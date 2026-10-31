@@ -30,7 +30,7 @@ public class LauncherConfig {
     public static int autoLauncherGap = DEFAULT_AUTO_LAUNCHER_GAP;
 
     // How many inches AutoShootFirst and AutoShootGarden drive forward from startPose to shootPose. 0 is
-    // allowed (shoot from startPose). Read when PLAY is pressed.
+    // allowed (shoot from startPose). Read when INIT is pressed.
     public static int forward = 0;
 
 
