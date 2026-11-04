@@ -60,7 +60,7 @@ public class AutoShootFirst extends OpMode {
 
     // Set by each step of autoRoutine() and shown every loop.
     private String autoStage = "waiting for start";
-    private CRServo windmillServo = null;
+    private DcMotor neoWindmill = null;
 
     //poses from before
     // other poses...
@@ -129,10 +129,10 @@ public class AutoShootFirst extends OpMode {
         follower = Constants.create(hardwareMap);
         follower.setPose(startPose);
         follower.update();
-        windmillServo = hardwareMap.get(CRServo.class, "windmillServo");
-        windmillServo.setDirection(DcMotorSimple.Direction.REVERSE);
-        windmillServo.setPower(0);
-        windmillFeeder = new WindmillFeeder(windmillServo);
+        neoWindmill = hardwareMap.get(DcMotor.class, "NEO");
+        neoWindmill.setDirection(DcMotorSimple.Direction.REVERSE);
+        neoWindmill.setPower(0);
+        windmillFeeder = new WindmillFeeder(neoWindmill);
         launcher =hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));

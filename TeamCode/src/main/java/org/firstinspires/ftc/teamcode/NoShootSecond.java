@@ -43,7 +43,7 @@ public class NoShootSecond extends OpMode {
     private DcMotor intake = null;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
-    private CRServo windmillServo = null;
+    private DcMotor neoWindmill = null;
     double intakePower;
 
     private GoBildaPinpointDriver odo;
@@ -88,10 +88,10 @@ public class NoShootSecond extends OpMode {
         follower = Constants.create(hardwareMap);
         follower.setPose(startPose);
         follower.update();
-        windmillServo = hardwareMap.get(CRServo.class, "windmillServo");
-        windmillServo.setDirection(DcMotorSimple.Direction.REVERSE);
-        windmillServo.setPower(0);
-        windmillFeeder = new WindmillFeeder(windmillServo);
+        neoWindmill = hardwareMap.get(DcMotor.class, "NEO");
+        neoWindmill.setDirection(DcMotorSimple.Direction.REVERSE);
+        neoWindmill.setPower(0);
+        windmillFeeder = new WindmillFeeder(neoWindmill);
         launcher =hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
@@ -147,7 +147,7 @@ public class NoShootSecond extends OpMode {
 
         if (launch_Done || System.currentTimeMillis() - startTime > 5_000) {
             launcher.setVelocity(0);
-            windmillServo.setPower(0);
+            neoWindmill.setPower(0);
             launcher.setPower(0);
             if (!launch_Done) {
                 launch_Done = true;

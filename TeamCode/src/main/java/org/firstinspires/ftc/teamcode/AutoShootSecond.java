@@ -49,7 +49,7 @@ public class AutoShootSecond extends OpMode {
     // move forward for 0 inches to shoot (shoot from startPose)
     private static final int forward = 0;
     private final Pose shootPose = p.of(144 - forward, 84, 0);
-    private final Pose park = p.of(132, 130, 0);
+    private final Pose park = p.of(112, 130, 0);
     // If we shoot from closer to the wall than this x, first drive forward to this x
     // before parking so we don't bump into the flower.
     private static final double CLEAR_X = 138;
@@ -59,7 +59,7 @@ public class AutoShootSecond extends OpMode {
     private DcMotor intake = null;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
-    private CRServo windmillServo = null;
+    private DcMotor neoWindmill = null;
     double intakePower;
 
     private GoBildaPinpointDriver odo;
@@ -81,7 +81,7 @@ public class AutoShootSecond extends OpMode {
     //   only red seen  -> wait for any blue tag
     //   otherwise      -> wait for any tag ID that wasn't visible before
 //    private static final int APRILTAG_PIPELINE = 1;
-    private static final long TAG_WAIT_TIMEOUT_MS = 10_000;
+    private static final long TAG_WAIT_TIMEOUT_MS = 5_000;
 //    private static final int RED_TAG_MIN = 30, RED_TAG_MAX = 37;
 //    private static final int BLUE_TAG_MIN = 38, BLUE_TAG_MAX = 45;
 //    private Limelight3A limelight;
@@ -175,7 +175,7 @@ public class AutoShootSecond extends OpMode {
                         autoStage = "not shooting (SECOND_SHOOT off), waiting 10s";
                     }
                 }),
-                waitMs(10_000),
+                waitMs(15_000),
                 instant(() -> {
                     launching = false;
                     launcher.setVelocity(0);
@@ -232,10 +232,10 @@ public class AutoShootSecond extends OpMode {
         follower = Constants.create(hardwareMap);
         follower.setPose(startPose);
         follower.update();
-        windmillServo = hardwareMap.get(CRServo.class, "windmillServo");
-        windmillServo.setDirection(DcMotorSimple.Direction.REVERSE);
-        windmillServo.setPower(0);
-        windmillFeeder = new WindmillFeeder(windmillServo);
+        neoWindmill = hardwareMap.get(DcMotor.class, "NEO");
+        neoWindmill.setDirection(DcMotorSimple.Direction.REVERSE);
+        neoWindmill.setPower(0);
+        windmillFeeder = new WindmillFeeder(neoWindmill);
         launcher =hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));

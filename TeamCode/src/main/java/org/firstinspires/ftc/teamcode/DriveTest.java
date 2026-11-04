@@ -76,6 +76,7 @@ public class DriveTest extends OpMode {
 
     private DcMotor frontRight, frontLeft, backRight, backLeft;
     private DcMotorEx launcher = null;
+    private DcMotor neoWindmill = null;
     private DcMotor intake = null;
     // Flower positions come from FlowerConfig (tunable on FTC Dashboard).
     double flowerPos;
@@ -84,7 +85,6 @@ public class DriveTest extends OpMode {
     private CRServo rightIntakeServo = null;
     private Servo rightFlowerIntakeServo = null;
     private Servo leftflowerIntakeServo = null;
-    private CRServo windmillServo = null;
     boolean stopIntake = false;
     private long timeNow;
     // When right_bumper started being held, or -1 when it isn't held.
@@ -127,7 +127,7 @@ public class DriveTest extends OpMode {
         intake = hardwareMap.get(DcMotor.class, "intake");
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
         launcher = hardwareMap.get(DcMotorEx.class, "launcher");
-        windmillServo = hardwareMap.get(CRServo.class, "windmillServo");
+        neoWindmill = hardwareMap.get(DcMotor.class, "NEO");
         leftIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
         rightIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
         intake.setZeroPowerBehavior(BRAKE);
@@ -151,9 +151,9 @@ public class DriveTest extends OpMode {
         leftIntakeServo.setPower(0);
 
         rightIntakeServo.setPower(0);
-        windmillServo.setPower(0);
-        windmillServo.setDirection(DcMotorSimple.Direction.REVERSE);
-        windmillFeeder = new WindmillFeeder(windmillServo);
+        neoWindmill.setPower(0);
+        neoWindmill.setDirection(DcMotorSimple.Direction.REVERSE);
+        windmillFeeder = new WindmillFeeder(neoWindmill);
 //        tagAimer = new TagAimer(hardwareMap, telemetry, red);
 
         /*
