@@ -17,10 +17,12 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
 import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.launcherTargetVelocity;
 
@@ -41,6 +43,9 @@ public class AutoShootFirstTRUE extends OpMode {
     private DcMotor intake = null;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
+    // Flower positions come from FlowerConfig (tunable on FTC Dashboard), same as DriveTest.
+    private Servo rightFlowerIntakeServo = null;
+    private Servo leftflowerIntakeServo = null;
     private DcMotor neoWindmill = null;
     double intakePower;
 
@@ -89,6 +94,13 @@ public class AutoShootFirstTRUE extends OpMode {
         neoWindmill.setDirection(DcMotorSimple.Direction.REVERSE);
         neoWindmill.setPower(0);
         windmillFeeder = new WindmillFeeder(neoWindmill);
+        // Flower setup, copied from DriveTest; start at the base (home) position.
+        rightFlowerIntakeServo = hardwareMap.get(Servo.class, "flowery");
+        leftflowerIntakeServo = hardwareMap.get(Servo.class, "flowey");
+        rightFlowerIntakeServo.setDirection(Servo.Direction.REVERSE);
+        leftflowerIntakeServo.setDirection(Servo.Direction.FORWARD);
+        rightFlowerIntakeServo.setPosition(flowerHome());
+        leftflowerIntakeServo.setPosition(flowerHome());
         launcher =hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));

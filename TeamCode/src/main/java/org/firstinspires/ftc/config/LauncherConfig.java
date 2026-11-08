@@ -14,11 +14,11 @@ import com.acmerobotics.dashboard.config.Config;
  */
 @Config
 public class LauncherConfig {
-    private static final int DEFAULT_LAUNCHER_TARGET_VELOCITY = 1125;
-    private static final int DEFAULT_LAUNCHER_GAP = 25;
+    private static final int DEFAULT_LAUNCHER_TARGET_VELOCITY = 1165;
+    private static final int DEFAULT_LAUNCHER_GAP = 35;
 
-    private static final int DEFAULT_AUTO_LAUNCHER_TARGET_VELOCITY = 1125;
-    private static final int DEFAULT_AUTO_LAUNCHER_GAP = 25;
+    private static final int DEFAULT_AUTO_LAUNCHER_TARGET_VELOCITY = 1155;
+    private static final int DEFAULT_AUTO_LAUNCHER_GAP = 35;
 
     // Launcher speed to shoot at.
     public static int launcherTargetVelocity = DEFAULT_LAUNCHER_TARGET_VELOCITY;

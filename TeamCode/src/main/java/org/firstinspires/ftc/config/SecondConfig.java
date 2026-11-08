@@ -15,6 +15,14 @@ public class SecondConfig {
     // for the same 10s (so the timing doesn't change), but leaves the launcher off.
     // Read when the robot reaches shootPose.
     public static boolean SECOND_SHOOT = true;
+
+    // After reaching the flower, rock back and forth to shake balls into the intake (like
+    // the garden jiggle in AutoShootGarden). Each rock backs up SECOND_JIGGLE_INCHES and
+    // returns. Read when the jiggle starts.
+    public static double SECOND_JIGGLE_INCHES = 3;
+    public static int SECOND_JIGGLE_TIMES = 3;
+    // Max time for each half of a rock, in case the robot can't quite reach the end.
+    public static int SECOND_JIGGLE_HALF_MS = 400;
     // AutoShootSecond's own launcher speed and feed gap.
     private static final int DEFAULT_SECOND_LAUNCHER_TARGET_VELOCITY = 1187;
     private static final int DEFAULT_SECOND_LAUNCHER_GAP = 25;

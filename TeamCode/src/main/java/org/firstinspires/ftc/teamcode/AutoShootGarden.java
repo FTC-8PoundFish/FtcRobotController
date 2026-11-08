@@ -17,6 +17,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.pedropathing.ivy.groups.Groups.race;
@@ -25,6 +26,7 @@ import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.lazy;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherMinVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherTargetVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.forward;
@@ -66,6 +68,9 @@ public class AutoShootGarden extends OpMode {
     private DcMotor intake = null;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
+    // Flower positions come from FlowerConfig (tunable on FTC Dashboard), same as DriveTest.
+    private Servo rightFlowerIntakeServo = null;
+    private Servo leftflowerIntakeServo = null;
     private DcMotor neoWindmill = null;
     double intakePower;
 
@@ -158,6 +163,13 @@ public class AutoShootGarden extends OpMode {
         neoWindmill.setDirection(DcMotorSimple.Direction.REVERSE);
         neoWindmill.setPower(0);
         windmillFeeder = new WindmillFeeder(neoWindmill);
+        // Flower setup, copied from DriveTest; start at the base (home) position.
+        rightFlowerIntakeServo = hardwareMap.get(Servo.class, "flowery");
+        leftflowerIntakeServo = hardwareMap.get(Servo.class, "flowey");
+        rightFlowerIntakeServo.setDirection(Servo.Direction.REVERSE);
+        leftflowerIntakeServo.setDirection(Servo.Direction.FORWARD);
+        rightFlowerIntakeServo.setPosition(flowerHome());
+        leftflowerIntakeServo.setPosition(flowerHome());
         launcher =hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
@@ -190,6 +202,9 @@ public class AutoShootGarden extends OpMode {
 
     @Override
     public void loop() {
+        intake.setPower(1);
+        leftIntakeServo.setPower(1);
+        rightIntakeServo.setPower(1);
 
         follower.update();
         Scheduler.execute();

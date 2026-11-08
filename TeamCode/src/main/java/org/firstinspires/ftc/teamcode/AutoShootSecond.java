@@ -16,6 +16,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
 //import com.qualcomm.hardware.limelightvision.LLResult;
 //import com.qualcomm.hardware.limelightvision.LLResultTypes;
 //import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -24,11 +25,19 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 //import java.util.Set;
 
 import static com.pedropathing.ivy.groups.Groups.sequential;
+import static com.pedropathing.ivy.groups.Groups.race;
+import static com.pedropathing.ivy.groups.Groups.repeat;
+import static com.pedropathing.ivy.commands.Commands.lazy;
 import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.pedropathing.ivy.commands.Commands.waitUntil;
 
+import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_SHOOT;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_HALF_MS;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_INCHES;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_TIMES;
 import static org.firstinspires.ftc.config.SecondConfig.secondLauncherMinVelocity;
 import static org.firstinspires.ftc.config.SecondConfig.secondLauncherTargetVelocity;
 
@@ -46,19 +55,19 @@ public class AutoShootSecond extends OpMode {
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 84, 0);
+    private final Pose flowerPose = p.of(133,100,0 );
     // move forward for 0 inches to shoot (shoot from startPose)
     private static final int forward = 0;
     private final Pose shootPose = p.of(144 - forward, 84, 0);
     private final Pose park = p.of(112, 130, 0);
-    // If we shoot from closer to the wall than this x, first drive forward to this x
-    // before parking so we don't bump into the flower.
-    private static final double CLEAR_X = 138;
-    private final Pose clearPose = p.of(CLEAR_X, 84, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
+    // Flower positions come from FlowerConfig (tunable on FTC Dashboard), same as DriveTest.
+    private Servo rightFlowerIntakeServo = null;
+    private Servo leftflowerIntakeServo = null;
     private DcMotor neoWindmill = null;
     double intakePower;
 
@@ -81,7 +90,7 @@ public class AutoShootSecond extends OpMode {
     //   only red seen  -> wait for any blue tag
     //   otherwise      -> wait for any tag ID that wasn't visible before
 //    private static final int APRILTAG_PIPELINE = 1;
-    private static final long TAG_WAIT_TIMEOUT_MS = 5_000;
+    private static final long TAG_WAIT_TIMEOUT_MS = 10_000;
 //    private static final int RED_TAG_MIN = 30, RED_TAG_MAX = 37;
 //    private static final int BLUE_TAG_MIN = 38, BLUE_TAG_MAX = 45;
 //    private Limelight3A limelight;
@@ -116,19 +125,36 @@ public class AutoShootSecond extends OpMode {
     private Path startToShoot() {
         return line(startPose, shootPose).linear(startPose, shootPose);
     }
-    private Path Park() {
-        return line(shootPose, park).linear(shootPose, park);
+    private Path toFlower(){
+        return line(shootPose,flowerPose).linear(shootPose,flowerPose);
     }
-    private Path shootToClear() {
-        return line(shootPose, clearPose).linear(shootPose, clearPose);
-    }
-    private Path clearToPark() {
-        return line(clearPose, park).linear(clearPose, park);
+    private Path flowerToPark() {
+        return line(flowerPose, park).linear(flowerPose, park);
     }
 
 
     private static boolean samePose(Pose a, Pose b) {
         return a.x() == b.x() && a.y() == b.y() && a.heading() == b.heading();
+    }
+
+    // Rock back and forth around wherever the robot is now (same as AutoShootGarden's
+    // jiggle). Built when it starts, so it uses the robot's actual pose and the current
+    // dashboard values.
+    private Command jiggle() {
+        Pose here = follower.pose();
+        double heading = here.heading();
+        Pose anchor = p.of(here.x(), here.y(), Math.toDegrees(heading));
+        Pose back = p.of(
+                here.x() - SECOND_JIGGLE_INCHES * Math.cos(heading),
+                here.y() - SECOND_JIGGLE_INCHES * Math.sin(heading),
+                Math.toDegrees(heading));
+        return repeat(
+                sequential(
+                        race(follow(follower, line(anchor, back).linear(anchor, back)),
+                                waitMs(SECOND_JIGGLE_HALF_MS)),
+                        race(follow(follower, line(back, anchor).linear(back, anchor)),
+                                waitMs(SECOND_JIGGLE_HALF_MS))),
+                SECOND_JIGGLE_TIMES);
     }
 
     // The whole auto. Each step starts as soon as the previous one finishes.
@@ -138,15 +164,18 @@ public class AutoShootSecond extends OpMode {
         Command driveToShoot = samePose(startPose, shootPose)
                 ? instant(() -> autoStage = "already at shootPose")
                 : follow(follower, startToShoot());
-        Command driveToPark = shootPose.x() > CLEAR_X
-                ? sequential(
-                        follow(follower, shootToClear()),
-                        instant(() -> autoStage = "parking (cleared flower)"),
-                        follow(follower, clearToPark()))
-                : follow(follower, Park());
+        Command shootToFlower = sequential(
+                instant(() -> {
+                    autoStage = "going to flower";
+                    // Intake on, same as left_trigger in DriveTest.
+                    intake.setPower(1);
+                    leftIntakeServo.setPower(1);
+                    rightIntakeServo.setPower(-1);
+                }),
+                follow(follower, toFlower()));
+        Command driveToPark = follow(follower, flowerToPark());
         return sequential(
                 instant(() -> autoStage = "waiting 2s"),
-                waitMs(2000),
 //                instant(() -> {
 //                    chooseTagToWaitFor();
 //                    watchingForNewTag = true;  // loop() sets newTagId when that tag shows up
@@ -175,22 +204,25 @@ public class AutoShootSecond extends OpMode {
                         autoStage = "not shooting (SECOND_SHOOT off), waiting 10s";
                     }
                 }),
-                waitMs(15_000),
+                waitMs(7_000),
                 instant(() -> {
                     launching = false;
                     launcher.setVelocity(0);
                     windmillFeeder.stop();
-                    autoStage = "parking";
                 }),
+                shootToFlower,
+                instant(() -> autoStage = "jiggling at flower"),
+                lazy(this::jiggle),
+                instant(() -> autoStage = "parking"),
                 driveToPark,
-                instant(() -> autoStage = "parked")
+                instant(() -> {
+                    intake.setPower(0);
+                    leftIntakeServo.setPower(0);
+                    rightIntakeServo.setPower(0);
+                    autoStage = "parked";
+                })
         );
     }
-
-//    private Path park() {
-//        return curve(startPose, controlPose, park).linear(startPose, park);
-//    }
-// in your autonomous
 
 
     @Override
@@ -236,6 +268,21 @@ public class AutoShootSecond extends OpMode {
         neoWindmill.setDirection(DcMotorSimple.Direction.REVERSE);
         neoWindmill.setPower(0);
         windmillFeeder = new WindmillFeeder(neoWindmill);
+        // Intake and flower setup, copied from DriveTest.
+        intake = hardwareMap.get(DcMotor.class, "intake");
+        intake.setZeroPowerBehavior(BRAKE);
+        leftIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
+        rightIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
+        rightIntakeServo.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftIntakeServo.setDirection(DcMotorSimple.Direction.FORWARD);
+        leftIntakeServo.setPower(0);
+        rightIntakeServo.setPower(0);
+        rightFlowerIntakeServo = hardwareMap.get(Servo.class, "flowery");
+        leftflowerIntakeServo = hardwareMap.get(Servo.class, "flowey");
+        rightFlowerIntakeServo.setDirection(Servo.Direction.REVERSE);
+        leftflowerIntakeServo.setDirection(Servo.Direction.FORWARD);
+        rightFlowerIntakeServo.setPosition(flowerHome());
+        leftflowerIntakeServo.setPosition(flowerHome());
         launcher =hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
