@@ -32,10 +32,14 @@ package org.firstinspires.ftc.teamcode;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static org.firstinspires.ftc.config.FlowerConfig.flower90Deg;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
+import static org.firstinspires.ftc.config.FlowerConfig.flowerJiggle;
+import static org.firstinspires.ftc.config.FlowerConfig.flowerJiggleHalfMs;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerNectarBlock;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerNudgePerSec;
 import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.launcherTargetVelocity;
+import static org.firstinspires.ftc.config.SecondConfig.secondLauncherMinVelocity;
+import static org.firstinspires.ftc.config.SecondConfig.secondLauncherTargetVelocity;
 
 import com.pedropathing.follower.Follower;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
@@ -80,6 +84,8 @@ public class DriveTest extends OpMode {
     private DcMotor intake = null;
     // Flower positions come from FlowerConfig (tunable on FTC Dashboard).
     double flowerPos;
+    // True while y was held last loop, so we put the flower back at flowerPos on release.
+    private boolean flowerJiggling = false;
     private double lastLoopTime = -1;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
@@ -138,6 +144,15 @@ public class DriveTest extends OpMode {
         // Read flowerHome() here rather than at construction so a dashboard change applies
         // the next time this OpMode is initialized.
         flowerPos = flowerHome();
+        telemetry.addData(
+                "Speed",
+                "target (%d), min (%d) flower_left (%f), flower_right (%f) target(%f)",
+                secondLauncherTargetVelocity(),
+                secondLauncherMinVelocity(),
+                leftflowerIntakeServo.getPosition(),
+                rightFlowerIntakeServo.getPosition(),
+                flowerPos);
+        telemetry.update();
         rightFlowerIntakeServo.setPosition(flowerPos);
         leftflowerIntakeServo.setPosition(flowerPos);
 //        follower = Constants.create(hardwareMap);
@@ -182,27 +197,7 @@ public class DriveTest extends OpMode {
 
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
-        telemetry.addData(
-                "Speed",
-                "target (%d), min (%d) flower (%.2f)",
-                launcherTargetVelocity(),
-                launcherMinVelocity(),
-                flowerPos);
-        telemetry.update();
 
-    }
-
-    // init() runs only once, so show the speed here too; a dashboard change made after
-    // pressing INIT then shows up right away.
-    @Override
-    public void init_loop() {
-        telemetry.addData(
-                "Speed",
-                "target (%d), min (%d) flower (%.2f)",
-                launcherTargetVelocity(),
-                launcherMinVelocity(),
-                flowerPos);
-        telemetry.update();
     }
 
     @Override
@@ -243,7 +238,10 @@ public class DriveTest extends OpMode {
         double now = getRuntime();
         double dt = lastLoopTime < 0 ? 0 : now - lastLoopTime;
         lastLoopTime = now;
-        if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left || gamepad1.dpad_right || gamepad1.x) {
+        // Holding y jiggles the flower around flowerPos; on release it goes back to flowerPos.
+        if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left || gamepad1.dpad_right || gamepad1.x
+                || gamepad1.y || flowerJiggling) {
+            double jiggle = 0;
             if (gamepad1.dpad_down){
                 flowerPos = flowerHome() + flower90Deg();
             } else if (gamepad1.dpad_up){
@@ -254,10 +252,15 @@ public class DriveTest extends OpMode {
                 flowerPos = flowerPos - flowerNudgePerSec() * dt;
             } else if (gamepad1.x) {
                 flowerPos = flowerHome() + flowerNectarBlock();
+            } else if (gamepad1.y) {
+                boolean up = ((long) (now * 1000 / flowerJiggleHalfMs())) % 2 == 0;
+                jiggle = (up ? 0.5 : -0.5) * flowerJiggle();
             }
+            flowerJiggling = gamepad1.y;
             flowerPos = Math.max(0.0, Math.min(1.0, flowerPos));
-            rightFlowerIntakeServo.setPosition(flowerPos);
-            leftflowerIntakeServo.setPosition(flowerPos);
+            double target = Math.max(0.0, Math.min(1.0, flowerPos + jiggle));
+            rightFlowerIntakeServo.setPosition(target);
+            leftflowerIntakeServo.setPosition(target);
         }
 
 

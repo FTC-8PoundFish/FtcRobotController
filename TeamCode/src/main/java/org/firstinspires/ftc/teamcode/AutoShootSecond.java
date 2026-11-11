@@ -17,27 +17,30 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
-//import com.qualcomm.hardware.limelightvision.LLResult;
-//import com.qualcomm.hardware.limelightvision.LLResultTypes;
-//import com.qualcomm.hardware.limelightvision.Limelight3A;
-//
-//import java.util.HashSet;
-//import java.util.Set;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.pedropathing.ivy.groups.Groups.race;
-import static com.pedropathing.ivy.groups.Groups.repeat;
 import static com.pedropathing.ivy.commands.Commands.lazy;
 import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.pedropathing.ivy.commands.Commands.waitUntil;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static org.firstinspires.ftc.config.FlowerConfig.flower90Deg;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_SHOOT;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_HALF_MS;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_INCHES;
-import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_TIMES;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_STOP_MS;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_FLOWER_DOWN_MS;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_WAIT_TAG;
+import org.firstinspires.ftc.config.SecondConfig;
 import static org.firstinspires.ftc.config.SecondConfig.secondLauncherMinVelocity;
 import static org.firstinspires.ftc.config.SecondConfig.secondLauncherTargetVelocity;
 
@@ -52,14 +55,16 @@ public class AutoShootSecond extends OpMode {
     private long startTime;
 
     private boolean launching = false;
+    // SECOND_SHOOT as read at shootPose; also decides whether we go to the flower after.
+    private boolean shooting = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 84, 0);
-    private final Pose flowerPose = p.of(133,100,0 );
+    private final Pose flowerPose = p.of(127,100,0 );
     // move forward for 0 inches to shoot (shoot from startPose)
     private static final int forward = 0;
     private final Pose shootPose = p.of(144 - forward, 84, 0);
-    private final Pose park = p.of(112, 130, 0);
+    private final Pose park = p.of(127, 130, 0);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -80,46 +85,38 @@ public class AutoShootSecond extends OpMode {
     // Set by each step of autoRoutine() and shown every loop.
     private String autoStage = "waiting for start";
 
-    // Limelight is commented out for now: we just wait until TAG_WAIT_TIMEOUT_MS after
-    // start before driving to shootPose.
-    //
     // Start driving as soon as the Limelight sees the tag we're waiting for, or at
-    // TAG_WAIT_TIMEOUT_MS after start if it never shows up. Tags seen during init and the
-    // first 2s decide what we wait for:
-    //   only blue seen -> wait for any red tag
-    //   only red seen  -> wait for any blue tag
-    //   otherwise      -> wait for any tag ID that wasn't visible before
-//    private static final int APRILTAG_PIPELINE = 1;
-    private static final long TAG_WAIT_TIMEOUT_MS = 10_000;
-//    private static final int RED_TAG_MIN = 30, RED_TAG_MAX = 37;
-//    private static final int BLUE_TAG_MIN = 38, BLUE_TAG_MAX = 45;
-//    private Limelight3A limelight;
-//    private final Set<Integer> knownTagIds = new HashSet<>();
-//    private boolean watchingForNewTag = false;
-//    private String waitingFor = "any new tag";  // "red", "blue" or "any new tag"
-//    private int newTagId = -1;
-//
-//    private static boolean isRed(int id) {
-//        return id >= RED_TAG_MIN && id <= RED_TAG_MAX;
-//    }
-//    private static boolean isBlue(int id) {
-//        return id >= BLUE_TAG_MIN && id <= BLUE_TAG_MAX;
-//    }
-//
-//    private void chooseTagToWaitFor() {
-//        boolean sawRed = false, sawBlue = false;
-//        for (int id : knownTagIds) {
-//            sawRed |= isRed(id);
-//            sawBlue |= isBlue(id);
-//        }
-//        if (sawBlue && !sawRed) {
-//            waitingFor = "red";
-//        } else if (sawRed && !sawBlue) {
-//            waitingFor = "blue";
-//        } else {
-//            waitingFor = "any new tag";
-//        }
-//    }
+    // TAG_WAIT_TIMEOUT_MS after start if it never shows up. SecondConfig.SECOND_WAIT_TAG
+    // (FTC Dashboard dropdown) decides what we wait for:
+    //   BLUE -> wait for any blue tag (42-45)
+    //   RED  -> wait for any red tag (30-33)
+    //   ANY  -> wait for any tag ID that wasn't visible during init
+    private static final int APRILTAG_PIPELINE = 1;
+    private static final long TAG_WAIT_TIMEOUT_MS = 9_000;
+    private static final int RED_TAG_MIN = 30, RED_TAG_MAX = 33;
+    private static final int BLUE_TAG_MIN = 42, BLUE_TAG_MAX = 45;
+    private Limelight3A limelight;
+    private final Set<Integer> knownTagIds = new HashSet<>();
+    private boolean watchingForNewTag = false;
+    private String waitingFor = "any new tag";  // "red", "blue" or "any new tag"
+    private int newTagId = -1;
+
+    private static boolean isRed(int id) {
+        return id >= RED_TAG_MIN && id <= RED_TAG_MAX;
+    }
+    private static boolean isBlue(int id) {
+        return id >= BLUE_TAG_MIN && id <= BLUE_TAG_MAX;
+    }
+
+    private void chooseTagToWaitFor() {
+        if (SECOND_WAIT_TAG == SecondConfig.WaitTag.BLUE) {
+            waitingFor = "blue";
+        } else if (SECOND_WAIT_TAG == SecondConfig.WaitTag.RED) {
+            waitingFor = "red";
+        } else {
+            waitingFor = "any new tag";
+        }
+    }
 
 
     private Path startToShoot() {
@@ -131,30 +128,32 @@ public class AutoShootSecond extends OpMode {
     private Path flowerToPark() {
         return line(flowerPose, park).linear(flowerPose, park);
     }
+    private Path shootToPark() {
+        return line(shootPose, park).linear(shootPose, park);
+    }
 
 
     private static boolean samePose(Pose a, Pose b) {
         return a.x() == b.x() && a.y() == b.y() && a.heading() == b.heading();
     }
 
-    // Rock back and forth around wherever the robot is now (same as AutoShootGarden's
-    // jiggle). Built when it starts, so it uses the robot's actual pose and the current
-    // dashboard values.
+    // One rock from wherever the robot is now: drive forward SECOND_JIGGLE_INCHES, stop for
+    // SECOND_JIGGLE_STOP_MS, drive back. Built when it starts, so it uses the robot's actual
+    // pose and the current dashboard values.
     private Command jiggle() {
         Pose here = follower.pose();
         double heading = here.heading();
         Pose anchor = p.of(here.x(), here.y(), Math.toDegrees(heading));
-        Pose back = p.of(
-                here.x() - SECOND_JIGGLE_INCHES * Math.cos(heading),
-                here.y() - SECOND_JIGGLE_INCHES * Math.sin(heading),
+        Pose ahead = p.of(
+                here.x() + SECOND_JIGGLE_INCHES * Math.cos(heading),
+                here.y() + SECOND_JIGGLE_INCHES * Math.sin(heading),
                 Math.toDegrees(heading));
-        return repeat(
-                sequential(
-                        race(follow(follower, line(anchor, back).linear(anchor, back)),
-                                waitMs(SECOND_JIGGLE_HALF_MS)),
-                        race(follow(follower, line(back, anchor).linear(back, anchor)),
-                                waitMs(SECOND_JIGGLE_HALF_MS))),
-                SECOND_JIGGLE_TIMES);
+        return sequential(
+                race(follow(follower, line(anchor, ahead).linear(anchor, ahead)),
+                        waitMs(SECOND_JIGGLE_HALF_MS)),
+                waitMs(SECOND_JIGGLE_STOP_MS),
+                race(follow(follower, line(ahead, anchor).linear(ahead, anchor)),
+                        waitMs(SECOND_JIGGLE_HALF_MS)));
     }
 
     // The whole auto. Each step starts as soon as the previous one finishes.
@@ -173,48 +172,68 @@ public class AutoShootSecond extends OpMode {
                     rightIntakeServo.setPower(-1);
                 }),
                 follow(follower, toFlower()));
-        Command driveToPark = follow(follower, flowerToPark());
+        Command flowerThenPark = sequential(
+                shootToFlower,
+                instant(() -> {
+                    // Flower down, same as dpad_down in DriveTest.
+                    double flowerDown = Math.max(0.0, Math.min(1.0, flowerHome() + flower90Deg()));
+                    rightFlowerIntakeServo.setPosition(flowerDown);
+                    leftflowerIntakeServo.setPosition(flowerDown);
+                    autoStage = "lowering flower";
+                }),
+                // Servos don't report position, so give them time to get all the way down.
+                lazy(() -> waitMs(SECOND_FLOWER_DOWN_MS)),
+                instant(() -> autoStage = "jiggling at flower"),
+                lazy(this::jiggle),
+                instant(() -> {
+                    // Flower back up to home, same as dpad_up in DriveTest.
+                    rightFlowerIntakeServo.setPosition(flowerHome());
+                    leftflowerIntakeServo.setPosition(flowerHome());
+                    autoStage = "parking";
+                }),
+                follow(follower, flowerToPark()));
+        // Without SECOND_SHOOT, skip the flower and park straight from shootPose.
+        Command parkFromShoot = sequential(
+                instant(() -> autoStage = "parking (no flower, SECOND_SHOOT off)"),
+                follow(follower, shootToPark()));
         return sequential(
                 instant(() -> autoStage = "waiting 2s"),
-//                instant(() -> {
-//                    chooseTagToWaitFor();
-//                    watchingForNewTag = true;  // loop() sets newTagId when that tag shows up
-//                    autoStage = "waiting for " + waitingFor + " AprilTag";
-//                }),
-//                waitUntil(() -> newTagId >= 0
-//                        || System.currentTimeMillis() - startTime > TAG_WAIT_TIMEOUT_MS),
-//                instant(() -> {
-//                    watchingForNewTag = false;
-//                    autoStage = newTagId >= 0
-//                            ? "tag " + newTagId + " seen, driving to shootPose"
-//                            : "no " + waitingFor + " tag in 10s, driving to shootPose";
-//                }),
-                instant(() -> autoStage = "waiting until 10s"),
-                waitUntil(() -> System.currentTimeMillis() - startTime > TAG_WAIT_TIMEOUT_MS),
-                instant(() -> autoStage = "driving to shootPose"),
+                instant(() -> {
+                    chooseTagToWaitFor();
+                    watchingForNewTag = true;  // loop() sets newTagId when that tag shows up
+                    autoStage = "waiting for " + waitingFor + " AprilTag";
+                }),
+                waitUntil(() -> newTagId >= 0
+                        || System.currentTimeMillis() - startTime > TAG_WAIT_TIMEOUT_MS),
+                instant(() -> {
+                    watchingForNewTag = false;
+                    autoStage = newTagId >= 0
+                            ? "tag " + newTagId + " seen, driving to shootPose"
+                            : "no " + waitingFor + " tag in 10s, driving to shootPose";
+                }),
+//                instant(() -> autoStage = "waiting until 10s"),
+//                waitUntil(() -> System.currentTimeMillis() - startTime > TAG_WAIT_TIMEOUT_MS),
+//                instant(() -> autoStage = "driving to shootPose"),
                 driveToShoot,
                 instant(() -> {
-//                    String tag = (newTagId >= 0) ? " detect_tag " : " timeout";
-//                    autoStage = "launching" + tag;
-                    if (SECOND_SHOOT) {
-                        autoStage = "launching:" + secondLauncherTargetVelocity();
+                    String tag = (newTagId >= 0) ? " detect_tag " : " timeout";
+                    autoStage = "launching" + tag;
+                    shooting = SECOND_SHOOT;
+                    if (shooting) {
+                        autoStage = "launching" + tag + ":" + secondLauncherTargetVelocity();
                         launcher.setVelocity(secondLauncherTargetVelocity());
                         launching = true;  // loop() feeds the windmill while this is true
                     } else {
                         autoStage = "not shooting (SECOND_SHOOT off), waiting 10s";
                     }
                 }),
-                waitMs(7_000),
+                waitMs(10_000),
                 instant(() -> {
                     launching = false;
                     launcher.setVelocity(0);
                     windmillFeeder.stop();
                 }),
-                shootToFlower,
-                instant(() -> autoStage = "jiggling at flower"),
-                lazy(this::jiggle),
-                instant(() -> autoStage = "parking"),
-                driveToPark,
+                lazy(() -> shooting ? flowerThenPark : parkFromShoot),
                 instant(() -> {
                     intake.setPower(0);
                     leftIntakeServo.setPower(0);
@@ -228,35 +247,35 @@ public class AutoShootSecond extends OpMode {
     @Override
     public void stop() {
         OpModeStorage.autonomousEndPose = follower.pose(); //saves your position in that file
-//        limelight.stop();
+        limelight.stop();
     }
 
-//    // Tags visible before we start watching count as "already there"; after that, we look
-//    // for a tag matching waitingFor.
-//    private void updateTags() {
-//        LLResult result = limelight.getLatestResult();
-//        if (result == null || !result.isValid()) {
-//            return;
-//        }
-//        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
-//            int id = tag.getFiducialId();
-//            if (!watchingForNewTag) {
-//                knownTagIds.add(id);
-//            } else if (newTagId < 0 && isTagWeAreWaitingFor(id)) {
-//                newTagId = id;
-//            }
-//        }
-//    }
-//
-//    private boolean isTagWeAreWaitingFor(int id) {
-//        if (waitingFor.equals("red")) {
-//            return isRed(id);
-//        }
-//        if (waitingFor.equals("blue")) {
-//            return isBlue(id);
-//        }
-//        return !knownTagIds.contains(id);
-//    }
+    // Tags visible before we start watching count as "already there"; after that, we look
+    // for a tag matching waitingFor.
+    private void updateTags() {
+        LLResult result = limelight.getLatestResult();
+        if (result == null || !result.isValid()) {
+            return;
+        }
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+            int id = tag.getFiducialId();
+            if (!watchingForNewTag) {
+                knownTagIds.add(id);
+            } else if (newTagId < 0 && isTagWeAreWaitingFor(id)) {
+                newTagId = id;
+            }
+        }
+    }
+
+    private boolean isTagWeAreWaitingFor(int id) {
+        if (waitingFor.equals("red")) {
+            return isRed(id);
+        }
+        if (waitingFor.equals("blue")) {
+            return isBlue(id);
+        }
+        return !knownTagIds.contains(id);
+    }
 
     @Override
     public void init() {
@@ -281,21 +300,24 @@ public class AutoShootSecond extends OpMode {
         leftflowerIntakeServo = hardwareMap.get(Servo.class, "flowey");
         rightFlowerIntakeServo.setDirection(Servo.Direction.REVERSE);
         leftflowerIntakeServo.setDirection(Servo.Direction.FORWARD);
+        telemetry.addData(
+                "Speed",
+                "target (%d), min (%d) flower_left (%f), flower_right (%f)",
+                secondLauncherTargetVelocity(),
+                secondLauncherMinVelocity(),
+                leftflowerIntakeServo.getPosition(),
+                rightFlowerIntakeServo.getPosition());
+        telemetry.update();
+
         rightFlowerIntakeServo.setPosition(flowerHome());
         leftflowerIntakeServo.setPosition(flowerHome());
         launcher =hardwareMap.get(DcMotorEx.class, "launcher");
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
-//        limelight = hardwareMap.get(Limelight3A.class, "limelight");
-//        limelight.setPollRateHz(100);
-//        limelight.pipelineSwitch(APRILTAG_PIPELINE);
-//        limelight.start();
-        telemetry.addData(
-                "Speed",
-                "target (%d), min (%d)",
-                secondLauncherTargetVelocity(),
-                secondLauncherMinVelocity());
-        telemetry.update();
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.setPollRateHz(100);
+        limelight.pipelineSwitch(APRILTAG_PIPELINE);
+        limelight.start();
 //        if (gamepad1.right_bumper) {
 //            long start = System.currentTimeMillis();
 //            while (System.currentTimeMillis() - start < 500) {
@@ -324,12 +346,12 @@ public class AutoShootSecond extends OpMode {
 //        }
     }
 
-//    @Override
-//    public void init_loop() {
-//        updateTags();
-//        telemetry.addData("Tags already visible", knownTagIds);
-//        telemetry.update();
-//    }
+    @Override
+    public void init_loop() {
+        updateTags();
+        telemetry.addData("Tags already visible", knownTagIds);
+        telemetry.update();
+    }
 
     @Override
     public void start() {
@@ -339,9 +361,12 @@ public class AutoShootSecond extends OpMode {
 
     @Override
     public void loop() {
+        intake.setPower(1);
+        rightIntakeServo.setPower(1);
+        leftIntakeServo.setPower(1);
 
         follower.update();
-//        updateTags();
+        updateTags();
         Scheduler.execute();
 
         telemetry.addData("X", follower.pose().x());
@@ -350,8 +375,8 @@ public class AutoShootSecond extends OpMode {
         telemetry.addData("Follower Mode", follower.mode());
         telemetry.addData("Auto stage", autoStage);
         telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
-//        telemetry.addData("Tags already visible", knownTagIds);
-//        telemetry.addData("New tag", newTagId >= 0 ? String.valueOf(newTagId) : "none");
+        telemetry.addData("Tags already visible", knownTagIds);
+        telemetry.addData("New tag", newTagId >= 0 ? String.valueOf(newTagId) : "none");
 
         if (launching) {
             if (launcher.getVelocity() > secondLauncherMinVelocity()) {
