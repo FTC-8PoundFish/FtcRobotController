@@ -32,8 +32,6 @@ package org.firstinspires.ftc.teamcode;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static org.firstinspires.ftc.config.FlowerConfig.flower90Deg;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
-import static org.firstinspires.ftc.config.DriveConfig.driveJiggleHalfMs;
-import static org.firstinspires.ftc.config.DriveConfig.driveJigglePower;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerNectarBlock;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerNudgePerSec;
 import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
@@ -51,6 +49,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
+import org.firstinspires.ftc.config.DriveConfig;
 import org.firstinspires.ftc.config.LauncherConfig;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
@@ -84,9 +83,7 @@ public class DriveTest extends OpMode {
     private DcMotor intake = null;
     // Flower positions come from FlowerConfig (tunable on FTC Dashboard).
     double flowerPos;
-    // When the current y rock started (seconds), or -1 when not rocking. Starting from the
-    // press means every rock begins with a forward half.
-    private double jiggleStartTime = -1;
+    private final RobotRocker rocker = new RobotRocker();
     private double lastLoopTime = -1;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
@@ -100,14 +97,6 @@ public class DriveTest extends OpMode {
     // Stick values smaller than this are treated as 0, so a stick that doesn't rest
     // exactly at center won't creep the robot.
     private static final double STICK_DEADBAND = 0.05;
-    // Holding x with the sticks centered rocks the robot forward and back (e.g. to
-    // settle artifacts in the hopper). Each half-cycle drives JIGGLE_HALF_MS at
-    // JIGGLE_POWER, forward first, so it ends up roughly where it started.
-    private static final double JIGGLE_POWER = 0.3;
-    private static final long JIGGLE_HALF_MS = 150;
-    // When x started being held for jiggling, or -1 when it isn't.
-    private long jiggleSince = -1;
-    private boolean wasJiggling = false;
     // True after left_trigger turns the intake on, until right_trigger is used.
     private boolean intakeLatchedOn = false;
 
@@ -207,17 +196,13 @@ public class DriveTest extends OpMode {
         double strafe = deadband(gamepad1.left_stick_x);
         double turn = deadband(gamepad1.right_stick_x);
         // Holding y with both sticks centered rocks the robot forward and back (see
-        // DriveConfig). Any stick input takes over, so normal driving always wins.
-        if (gamepad1.y && drive == 0 && strafe == 0 && turn == 0
-                && deadband(gamepad1.right_stick_y) == 0) {
-            if (jiggleStartTime < 0) {
-                jiggleStartTime = getRuntime();
-            }
-            double ms = (getRuntime() - jiggleStartTime) * 1000;
-            boolean forward = ((long) (ms / driveJiggleHalfMs())) % 2 == 0;
-            drive = forward ? driveJigglePower() : -driveJigglePower();
-        } else {
-            jiggleStartTime = -1;
+        // RobotRocker). Any stick input takes over, so normal driving always wins.
+        boolean sticksCentered = drive == 0 && strafe == 0 && turn == 0
+                && deadband(gamepad1.right_stick_y) == 0;
+        boolean rocking = gamepad1.y && sticksCentered;
+        double rock = rocker.drive(rocking);
+        if (rocking) {
+            drive = rock;
         }
         double[] speeds = {
                 (drive + strafe + turn),
@@ -295,6 +280,24 @@ public class DriveTest extends OpMode {
 //                launcherTargetVelocity(),
 //                launcherMinVelocity(),
 //                rightFlowerIntakeServo.getPosition());
+        // Shows why the y rock is or isn't running.
+        telemetry.addData(
+                "Rock",
+                "%s y (%b), sticksCentered (%b), drive (%.2f), power (%.2f), cycleMs (%.0f), forward (%.0f%%)",
+                rocking ? (rock > 0 ? "ROCKING forward" : "ROCKING back") : "idle",
+                gamepad1.y,
+                sticksCentered,
+                rock,
+                DriveConfig.driveJigglePower(),
+                DriveConfig.driveJiggleCycleMs(),
+                DriveConfig.driveJiggleForwardRatio() * 100);
+        telemetry.addData(
+                "Sticks",
+                "LX (%.2f), LY (%.2f), RX (%.2f), RY (%.2f)",
+                gamepad1.left_stick_x,
+                gamepad1.left_stick_y,
+                gamepad1.right_stick_x,
+                gamepad1.right_stick_y);
         telemetry.addData(
                 "Motors",
                 "frontLeft (%.2f), frontRight (%.2f), backLeft (%.2f), backRight (%.2f)",
