@@ -18,8 +18,6 @@ public class FlowerConfig {
     private static final double DEFAULT_FLOWER_90_DEG = 0.5;
     private static final double DEFAULT_FLOWER_NECTAR_BLOCK = 0.36;
     private static final double DEFAULT_FLOWER_NUDGE_PER_SEC = 0.25;
-    private static final double DEFAULT_FLOWER_JIGGLE_DEG = 5;
-    private static final double DEFAULT_FLOWER_JIGGLE_HALF_MS = 100;
 
     // Flower servos are mirrored: the left one is set to REVERSE, so sending the same
     // position to both turns one clockwise and the other counter-clockwise by the same angle.
@@ -33,11 +31,6 @@ public class FlowerConfig {
     // Holding dpad_left / dpad_right moves the flower this much per second, so the speed
     // doesn't depend on how fast loop() runs.
     public static double FLOWER_NUDGE_PER_SEC = DEFAULT_FLOWER_NUDGE_PER_SEC;
-
-    // Holding y jiggles the flower up and down around where it is now. FLOWER_JIGGLE_DEG is
-    // the total swing (half above, half below); each half lasts FLOWER_JIGGLE_HALF_MS.
-    public static double FLOWER_JIGGLE_DEG = DEFAULT_FLOWER_JIGGLE_DEG;
-    public static double FLOWER_JIGGLE_HALF_MS = DEFAULT_FLOWER_JIGGLE_HALF_MS;
 
     public static double flowerHome() {
         return orDefault(FLOWER_HOME, DEFAULT_FLOWER_HOME);
@@ -53,15 +46,6 @@ public class FlowerConfig {
 
     public static double flowerNudgePerSec() {
         return orDefault(FLOWER_NUDGE_PER_SEC, DEFAULT_FLOWER_NUDGE_PER_SEC);
-    }
-
-    // Total jiggle swing as a servo position, using FLOWER_90_DEG as the degrees scale.
-    public static double flowerJiggle() {
-        return flower90Deg() * orDefault(FLOWER_JIGGLE_DEG, DEFAULT_FLOWER_JIGGLE_DEG) / 90.0;
-    }
-
-    public static double flowerJiggleHalfMs() {
-        return orDefault(FLOWER_JIGGLE_HALF_MS, DEFAULT_FLOWER_JIGGLE_HALF_MS);
     }
 
     private static double orDefault(double value, double fallback) {

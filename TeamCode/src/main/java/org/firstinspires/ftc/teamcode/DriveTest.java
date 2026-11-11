@@ -32,8 +32,8 @@ package org.firstinspires.ftc.teamcode;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static org.firstinspires.ftc.config.FlowerConfig.flower90Deg;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
-import static org.firstinspires.ftc.config.FlowerConfig.flowerJiggle;
-import static org.firstinspires.ftc.config.FlowerConfig.flowerJiggleHalfMs;
+import static org.firstinspires.ftc.config.DriveConfig.driveJiggleHalfMs;
+import static org.firstinspires.ftc.config.DriveConfig.driveJigglePower;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerNectarBlock;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerNudgePerSec;
 import static org.firstinspires.ftc.config.LauncherConfig.launcherMinVelocity;
@@ -84,8 +84,9 @@ public class DriveTest extends OpMode {
     private DcMotor intake = null;
     // Flower positions come from FlowerConfig (tunable on FTC Dashboard).
     double flowerPos;
-    // True while y was held last loop, so we put the flower back at flowerPos on release.
-    private boolean flowerJiggling = false;
+    // When the current y rock started (seconds), or -1 when not rocking. Starting from the
+    // press means every rock begins with a forward half.
+    private double jiggleStartTime = -1;
     private double lastLoopTime = -1;
     private CRServo leftIntakeServo = null;
     private CRServo rightIntakeServo = null;
@@ -205,6 +206,19 @@ public class DriveTest extends OpMode {
         double drive = deadband(-gamepad1.left_stick_y);
         double strafe = deadband(gamepad1.left_stick_x);
         double turn = deadband(gamepad1.right_stick_x);
+        // Holding y with both sticks centered rocks the robot forward and back (see
+        // DriveConfig). Any stick input takes over, so normal driving always wins.
+        if (gamepad1.y && drive == 0 && strafe == 0 && turn == 0
+                && deadband(gamepad1.right_stick_y) == 0) {
+            if (jiggleStartTime < 0) {
+                jiggleStartTime = getRuntime();
+            }
+            double ms = (getRuntime() - jiggleStartTime) * 1000;
+            boolean forward = ((long) (ms / driveJiggleHalfMs())) % 2 == 0;
+            drive = forward ? driveJigglePower() : -driveJigglePower();
+        } else {
+            jiggleStartTime = -1;
+        }
         double[] speeds = {
                 (drive + strafe + turn),
                 (drive - strafe - turn),
@@ -238,10 +252,7 @@ public class DriveTest extends OpMode {
         double now = getRuntime();
         double dt = lastLoopTime < 0 ? 0 : now - lastLoopTime;
         lastLoopTime = now;
-        // Holding y jiggles the flower around flowerPos; on release it goes back to flowerPos.
-        if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left || gamepad1.dpad_right || gamepad1.x
-                || gamepad1.y || flowerJiggling) {
-            double jiggle = 0;
+        if (gamepad1.dpad_down || gamepad1.dpad_up || gamepad1.dpad_left || gamepad1.dpad_right || gamepad1.x) {
             if (gamepad1.dpad_down){
                 flowerPos = flowerHome() + flower90Deg();
             } else if (gamepad1.dpad_up){
@@ -252,15 +263,10 @@ public class DriveTest extends OpMode {
                 flowerPos = flowerPos - flowerNudgePerSec() * dt;
             } else if (gamepad1.x) {
                 flowerPos = flowerHome() + flowerNectarBlock();
-            } else if (gamepad1.y) {
-                boolean up = ((long) (now * 1000 / flowerJiggleHalfMs())) % 2 == 0;
-                jiggle = (up ? 0.5 : -0.5) * flowerJiggle();
             }
-            flowerJiggling = gamepad1.y;
             flowerPos = Math.max(0.0, Math.min(1.0, flowerPos));
-            double target = Math.max(0.0, Math.min(1.0, flowerPos + jiggle));
-            rightFlowerIntakeServo.setPosition(target);
-            leftflowerIntakeServo.setPosition(target);
+            rightFlowerIntakeServo.setPosition(flowerPos);
+            leftflowerIntakeServo.setPosition(flowerPos);
         }
 
 
