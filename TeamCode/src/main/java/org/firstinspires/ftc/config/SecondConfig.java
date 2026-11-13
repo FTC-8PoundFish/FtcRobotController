@@ -11,10 +11,14 @@ import com.acmerobotics.dashboard.config.Config;
  */
 @Config
 public class SecondConfig {
-    // Whether to shoot during the 10s at shootPose. When false the robot still waits there
-    // for the same 10s, but leaves the launcher off and then parks straight from shootPose
-    // without going to the flower. Read when the robot reaches shootPose.
+    // Whether to shoot during the SHOOT_TIME at shootPose. When false the robot still waits
+    // there for the same time, but leaves the launcher off and then parks straight from
+    // shootPose without going to the flower. Read when the robot reaches shootPose.
     public static boolean SECOND_SHOOT = true;
+
+    // How long (ms) the robot stays at shootPose shooting before moving on. Read when the
+    // robot reaches shootPose.
+    public static int SHOOT_TIME = 7_000;
 
     // Which AprilTags the Limelight waits for before driving to shootPose. Shows as a
     // dropdown on FTC Dashboard: BLUE -> tags 42-45, RED -> tags 30-33, ANY -> any tag
@@ -29,8 +33,8 @@ public class SecondConfig {
     // After reaching the flower, rock once to shake balls into the intake: drive forward
     // SECOND_JIGGLE_INCHES, stop there for SECOND_JIGGLE_STOP_MS, then drive back.
     // Read when the jiggle starts.
-    public static double SECOND_JIGGLE_INCHES = 3;
-    public static int SECOND_JIGGLE_STOP_MS = 300;
+    public static double SECOND_JIGGLE_INCHES = 15;
+    public static int SECOND_JIGGLE_STOP_MS = 3000;
     // Max time for each drive (forward or back), in case the robot can't quite reach the end.
     public static int SECOND_JIGGLE_HALF_MS = 400;
     // AutoShootSecond's own launcher speed and feed gap.

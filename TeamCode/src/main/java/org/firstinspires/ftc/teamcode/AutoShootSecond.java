@@ -35,6 +35,7 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static org.firstinspires.ftc.config.FlowerConfig.flower90Deg;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_SHOOT;
+import static org.firstinspires.ftc.config.SecondConfig.SHOOT_TIME;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_HALF_MS;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_INCHES;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_STOP_MS;
@@ -85,14 +86,17 @@ public class AutoShootSecond extends OpMode {
     // Set by each step of autoRoutine() and shown every loop.
     private String autoStage = "waiting for start";
 
-    // Start driving as soon as the Limelight sees the tag we're waiting for, or at
-    // TAG_WAIT_TIMEOUT_MS after start if it never shows up. SecondConfig.SECOND_WAIT_TAG
-    // (FTC Dashboard dropdown) decides what we wait for:
+    // Start shooting as soon as the Limelight sees the tag we're waiting for. If it still
+    // hasn't shown up when less than PARK_RESERVE_MS of the auto is left, skip shooting and
+    // just park. SecondConfig.SECOND_WAIT_TAG (FTC Dashboard dropdown) decides what we wait for:
     //   BLUE -> wait for any blue tag (42-45)
     //   RED  -> wait for any red tag (30-33)
     //   ANY  -> wait for any tag ID that wasn't visible during init
     private static final int APRILTAG_PIPELINE = 1;
-    private static final long TAG_WAIT_TIMEOUT_MS = 9_000;
+    // The autonomous period is 30s. Once less than PARK_RESERVE_MS is left we head straight
+    // to park so we make it in time.
+    private static final long AUTO_LENGTH_MS = 30_000;
+    private static final long PARK_RESERVE_MS = 8_000;
     private static final int RED_TAG_MIN = 30, RED_TAG_MAX = 33;
     private static final int BLUE_TAG_MIN = 42, BLUE_TAG_MAX = 45;
     private Limelight3A limelight;
@@ -132,6 +136,21 @@ public class AutoShootSecond extends OpMode {
         return line(shootPose, park).linear(shootPose, park);
     }
 
+
+    private long msLeft() {
+        return AUTO_LENGTH_MS - (System.currentTimeMillis() - startTime);
+    }
+
+    private boolean lowOnTime() {
+        return msLeft() < PARK_RESERVE_MS;
+    }
+
+    // Drive from shootPose straight to park, no stops. Built fresh each time.
+    private Command parkFromShoot(String why) {
+        return sequential(
+                instant(() -> autoStage = "parking (" + why + ")"),
+                follow(follower, shootToPark()));
+    }
 
     private static boolean samePose(Pose a, Pose b) {
         return a.x() == b.x() && a.y() == b.y() && a.heading() == b.heading();
@@ -192,48 +211,50 @@ public class AutoShootSecond extends OpMode {
                     autoStage = "parking";
                 }),
                 follow(follower, flowerToPark()));
-        // Without SECOND_SHOOT, skip the flower and park straight from shootPose.
-        Command parkFromShoot = sequential(
-                instant(() -> autoStage = "parking (no flower, SECOND_SHOOT off)"),
-                follow(follower, shootToPark()));
-        return sequential(
-                instant(() -> autoStage = "waiting 2s"),
-                instant(() -> {
-                    chooseTagToWaitFor();
-                    watchingForNewTag = true;  // loop() sets newTagId when that tag shows up
-                    autoStage = "waiting for " + waitingFor + " AprilTag";
-                }),
-                waitUntil(() -> newTagId >= 0
-                        || System.currentTimeMillis() - startTime > TAG_WAIT_TIMEOUT_MS),
-                instant(() -> {
-                    watchingForNewTag = false;
-                    autoStage = newTagId >= 0
-                            ? "tag " + newTagId + " seen, driving to shootPose"
-                            : "no " + waitingFor + " tag in 10s, driving to shootPose";
-                }),
-//                instant(() -> autoStage = "waiting until 10s"),
-//                waitUntil(() -> System.currentTimeMillis() - startTime > TAG_WAIT_TIMEOUT_MS),
-//                instant(() -> autoStage = "driving to shootPose"),
+        // Tag seen: shoot, then go to the flower if there's time (and SECOND_SHOOT is on),
+        // otherwise park straight from shootPose.
+        Command shootThenContinue = sequential(
                 driveToShoot,
                 instant(() -> {
-                    String tag = (newTagId >= 0) ? " detect_tag " : " timeout";
-                    autoStage = "launching" + tag;
                     shooting = SECOND_SHOOT;
                     if (shooting) {
-                        autoStage = "launching" + tag + ":" + secondLauncherTargetVelocity();
+                        autoStage = "launching tag " + newTagId + ":" + secondLauncherTargetVelocity();
                         launcher.setVelocity(secondLauncherTargetVelocity());
                         launching = true;  // loop() feeds the windmill while this is true
                     } else {
-                        autoStage = "not shooting (SECOND_SHOOT off), waiting 10s";
+                        autoStage = "not shooting (SECOND_SHOOT off), waiting " + SHOOT_TIME + "ms";
                     }
                 }),
-                waitMs(10_000),
+                // Built when reached, so a dashboard change to SHOOT_TIME applies.
+                lazy(() -> waitMs(SHOOT_TIME)),
                 instant(() -> {
                     launching = false;
                     launcher.setVelocity(0);
                     windmillFeeder.stop();
                 }),
-                lazy(() -> shooting ? flowerThenPark : parkFromShoot),
+                lazy(() -> {
+                    if (!shooting) {
+                        return parkFromShoot("no flower, SECOND_SHOOT off");
+                    }
+                    if (lowOnTime()) {
+                        return parkFromShoot("only " + msLeft() + "ms left, skipping flower");
+                    }
+                    return flowerThenPark;
+                }));
+        // Tag never seen before time ran low: don't shoot, drive straight through to park.
+        Command noTagPark = sequential(
+                instant(() -> autoStage = "no " + waitingFor + " tag, parking without shooting"),
+                driveToShoot,
+                parkFromShoot("no tag seen"));
+        return sequential(
+                instant(() -> {
+                    chooseTagToWaitFor();
+                    watchingForNewTag = true;  // loop() sets newTagId when that tag shows up
+                    autoStage = "waiting for " + waitingFor + " AprilTag";
+                }),
+                waitUntil(() -> newTagId >= 0 || lowOnTime()),
+                instant(() -> watchingForNewTag = false),
+                lazy(() -> newTagId >= 0 ? shootThenContinue : noTagPark),
                 instant(() -> {
                     intake.setPower(0);
                     leftIntakeServo.setPower(0);
