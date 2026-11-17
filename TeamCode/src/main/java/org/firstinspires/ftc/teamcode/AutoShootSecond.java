@@ -36,6 +36,7 @@ import static org.firstinspires.ftc.config.FlowerConfig.flower90Deg;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_SHOOT;
 import static org.firstinspires.ftc.config.SecondConfig.SHOOT_TIME;
+import static org.firstinspires.ftc.config.SecondConfig.EARLY_TAG_MS;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_HALF_MS;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_INCHES;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_STOP_MS;
@@ -66,6 +67,7 @@ public class AutoShootSecond extends OpMode {
     private static final int forward = 0;
     private final Pose shootPose = p.of(144 - forward, 84, 0);
     private final Pose park = p.of(127, 130, 0);
+    private final Pose twiceTheFun = p.of(135,110, 33);
 
     private DcMotorEx launcher = null;
     private DcMotor intake = null;
@@ -97,6 +99,8 @@ public class AutoShootSecond extends OpMode {
     // to park so we make it in time.
     private static final long AUTO_LENGTH_MS = 30_000;
     private static final long PARK_RESERVE_MS = 8_000;
+    // When the tag was seen (ms after start), compared against SecondConfig.EARLY_TAG_MS.
+    private long tagSeenAtMs = -1;
     private static final int RED_TAG_MIN = 30, RED_TAG_MAX = 33;
     private static final int BLUE_TAG_MIN = 42, BLUE_TAG_MAX = 45;
     private Limelight3A limelight;
@@ -135,7 +139,13 @@ public class AutoShootSecond extends OpMode {
     private Path shootToPark() {
         return line(shootPose, park).linear(shootPose, park);
     }
+    private Path secondShot() {
+        return line(flowerPose, twiceTheFun).linear(flowerPose, twiceTheFun);
+    }
 
+    private Path twiceThePark(){
+        return line(twiceTheFun,park).linear(twiceTheFun,park);
+    }
 
     private long msLeft() {
         return AUTO_LENGTH_MS - (System.currentTimeMillis() - startTime);
@@ -143,6 +153,53 @@ public class AutoShootSecond extends OpMode {
 
     private boolean lowOnTime() {
         return msLeft() < PARK_RESERVE_MS;
+    }
+
+    // Shoot for SHOOT_TIME at the SecondConfig launcher speed, then stop the launcher.
+    // Built fresh each time.
+    private Command shoot(String label) {
+        return sequential(
+                instant(() -> {
+                    autoStage = label + ":" + secondLauncherTargetVelocity();
+                    launcher.setVelocity(secondLauncherTargetVelocity());
+                    launching = true;  // loop() feeds the windmill while this is true
+                }),
+                // Built when reached, so a dashboard change to SHOOT_TIME applies.
+                lazy(() -> waitMs(SHOOT_TIME)),
+                instant(() -> {
+                    launching = false;
+                    launcher.setVelocity(0);
+                    windmillFeeder.stop();
+                }));
+    }
+
+    // shootPose -> flower, lower it, jiggle, raise it. Ends at flowerPose. Built fresh each time.
+    private Command flowerTrip() {
+        return sequential(
+                instant(() -> {
+                    autoStage = "going to flower";
+                    // Intake on, same as left_trigger in DriveTest.
+                    intake.setPower(1);
+                    leftIntakeServo.setPower(1);
+                    rightIntakeServo.setPower(-1);
+                }),
+                follow(follower, toFlower()),
+                instant(() -> {
+                    // Flower down, same as dpad_down in DriveTest.
+                    double flowerDown = Math.max(0.0, Math.min(1.0, flowerHome() + flower90Deg()));
+                    rightFlowerIntakeServo.setPosition(flowerDown);
+                    leftflowerIntakeServo.setPosition(flowerDown);
+                    autoStage = "lowering flower";
+                }),
+                // Servos don't report position, so give them time to get all the way down.
+                lazy(() -> waitMs(SECOND_FLOWER_DOWN_MS)),
+                instant(() -> autoStage = "jiggling at flower"),
+                lazy(this::jiggle),
+                instant(() -> {
+                    // Flower back up to home, same as dpad_up in DriveTest.
+                    rightFlowerIntakeServo.setPosition(flowerHome());
+                    leftflowerIntakeServo.setPosition(flowerHome());
+                }));
     }
 
     // Drive from shootPose straight to park, no stops. Built fresh each time.
@@ -182,55 +239,30 @@ public class AutoShootSecond extends OpMode {
         Command driveToShoot = samePose(startPose, shootPose)
                 ? instant(() -> autoStage = "already at shootPose")
                 : follow(follower, startToShoot());
-        Command shootToFlower = sequential(
-                instant(() -> {
-                    autoStage = "going to flower";
-                    // Intake on, same as left_trigger in DriveTest.
-                    intake.setPower(1);
-                    leftIntakeServo.setPower(1);
-                    rightIntakeServo.setPower(-1);
-                }),
-                follow(follower, toFlower()));
         Command flowerThenPark = sequential(
-                shootToFlower,
-                instant(() -> {
-                    // Flower down, same as dpad_down in DriveTest.
-                    double flowerDown = Math.max(0.0, Math.min(1.0, flowerHome() + flower90Deg()));
-                    rightFlowerIntakeServo.setPosition(flowerDown);
-                    leftflowerIntakeServo.setPosition(flowerDown);
-                    autoStage = "lowering flower";
-                }),
-                // Servos don't report position, so give them time to get all the way down.
-                lazy(() -> waitMs(SECOND_FLOWER_DOWN_MS)),
-                instant(() -> autoStage = "jiggling at flower"),
-                lazy(this::jiggle),
-                instant(() -> {
-                    // Flower back up to home, same as dpad_up in DriveTest.
-                    rightFlowerIntakeServo.setPosition(flowerHome());
-                    leftflowerIntakeServo.setPosition(flowerHome());
-                    autoStage = "parking";
-                }),
+                flowerTrip(),
+                instant(() -> autoStage = "parking"),
                 follow(follower, flowerToPark()));
+        // AutoShootTwice's route: flower, to twiceTheFun, shoot again, park.
+        Command flowerThenShootAgain = sequential(
+                flowerTrip(),
+                instant(() -> autoStage = "going to twiceTheFun for second shot"),
+                follow(follower, secondShot()),
+                shoot("second shot"),
+                // secondShot() ends at twiceTheFun, not shootPose, so park from there.
+                instant(() -> autoStage = "parking (after second shot)"),
+                follow(follower, twiceThePark()));
         // Tag seen: shoot, then go to the flower if there's time (and SECOND_SHOOT is on),
         // otherwise park straight from shootPose.
         Command shootThenContinue = sequential(
                 driveToShoot,
-                instant(() -> {
+                lazy(() -> {
                     shooting = SECOND_SHOOT;
                     if (shooting) {
-                        autoStage = "launching tag " + newTagId + ":" + secondLauncherTargetVelocity();
-                        launcher.setVelocity(secondLauncherTargetVelocity());
-                        launching = true;  // loop() feeds the windmill while this is true
-                    } else {
-                        autoStage = "not shooting (SECOND_SHOOT off), waiting " + SHOOT_TIME + "ms";
+                        return shoot("launching tag " + newTagId);
                     }
-                }),
-                // Built when reached, so a dashboard change to SHOOT_TIME applies.
-                lazy(() -> waitMs(SHOOT_TIME)),
-                instant(() -> {
-                    launching = false;
-                    launcher.setVelocity(0);
-                    windmillFeeder.stop();
+                    autoStage = "not shooting (SECOND_SHOOT off), waiting " + SHOOT_TIME + "ms";
+                    return waitMs(SHOOT_TIME);
                 }),
                 lazy(() -> {
                     if (!shooting) {
@@ -238,6 +270,9 @@ public class AutoShootSecond extends OpMode {
                     }
                     if (lowOnTime()) {
                         return parkFromShoot("only " + msLeft() + "ms left, skipping flower");
+                    }
+                    if (tagSeenAtMs < EARLY_TAG_MS) {
+                        return flowerThenShootAgain;
                     }
                     return flowerThenPark;
                 }));
@@ -253,7 +288,12 @@ public class AutoShootSecond extends OpMode {
                     autoStage = "waiting for " + waitingFor + " AprilTag";
                 }),
                 waitUntil(() -> newTagId >= 0 || lowOnTime()),
-                instant(() -> watchingForNewTag = false),
+                instant(() -> {
+                    watchingForNewTag = false;
+                    if (newTagId >= 0) {
+                        tagSeenAtMs = System.currentTimeMillis() - startTime;
+                    }
+                }),
                 lazy(() -> newTagId >= 0 ? shootThenContinue : noTagPark),
                 instant(() -> {
                     intake.setPower(0);
@@ -382,6 +422,7 @@ public class AutoShootSecond extends OpMode {
 
     @Override
     public void loop() {
+        launcher.setVelocity(secondLauncherTargetVelocity());
         intake.setPower(1);
         rightIntakeServo.setPower(1);
         leftIntakeServo.setPower(1);
@@ -397,7 +438,9 @@ public class AutoShootSecond extends OpMode {
         telemetry.addData("Auto stage", autoStage);
         telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
         telemetry.addData("Tags already visible", knownTagIds);
-        telemetry.addData("New tag", newTagId >= 0 ? String.valueOf(newTagId) : "none");
+        telemetry.addData("New tag", newTagId >= 0
+                ? newTagId + " at " + tagSeenAtMs + "ms" + (tagSeenAtMs < EARLY_TAG_MS ? " (early: shoot twice)" : "")
+                : "none");
 
         if (launching) {
             if (launcher.getVelocity() > secondLauncherMinVelocity()) {

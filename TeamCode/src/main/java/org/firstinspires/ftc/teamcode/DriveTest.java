@@ -352,7 +352,7 @@ public class DriveTest extends OpMode {
             telemetry.addData("launcher get speed", "launcher get speed %f", launcher.getVelocity());
         } else {
             rightBumperHeldSince = -1;
-            launcher.setVelocity(0);
+            launcher.setVelocity(500);
         }
         // No telemetry.update() here: loop() calls it once at the end. Calling it here too
         // cleared everything added before it and could drop lines from the log.

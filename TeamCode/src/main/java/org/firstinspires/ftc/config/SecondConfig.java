@@ -18,7 +18,12 @@ public class SecondConfig {
 
     // How long (ms) the robot stays at shootPose shooting before moving on. Read when the
     // robot reaches shootPose.
-    public static int SHOOT_TIME = 7_000;
+    public static int SHOOT_TIME = 4_000;
+
+    // If the AprilTag is seen within EARLY_TAG_MS (ms after start), there's time for the
+    // two-shot route after the first shot: flower, to twiceTheFun, shoot again, park.
+    // Seen later: flower, then park. Read after the first shot.
+    public static int EARLY_TAG_MS = 11_000;
 
     // Which AprilTags the Limelight waits for before driving to shootPose. Shows as a
     // dropdown on FTC Dashboard: BLUE -> tags 42-45, RED -> tags 30-33, ANY -> any tag
@@ -38,7 +43,7 @@ public class SecondConfig {
     // Max time for each drive (forward or back), in case the robot can't quite reach the end.
     public static int SECOND_JIGGLE_HALF_MS = 400;
     // AutoShootSecond's own launcher speed and feed gap.
-    private static final int DEFAULT_SECOND_LAUNCHER_TARGET_VELOCITY = 1165;
+    private static final int DEFAULT_SECOND_LAUNCHER_TARGET_VELOCITY = 1160;
     private static final int DEFAULT_SECOND_LAUNCHER_GAP = 35;
 
     public static int secondLauncherTargetVelocity = DEFAULT_SECOND_LAUNCHER_TARGET_VELOCITY;
