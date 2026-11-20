@@ -31,6 +31,7 @@ import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherMinVelocit
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherTargetVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.forward;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_DRIVE_MAX_MS;
+import static org.firstinspires.ftc.config.GardenConfig.GARDEN_GO_SECOND;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_HALF_MS;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_INCHES;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_TIMES;
@@ -47,12 +48,14 @@ public class AutoShootGarden extends OpMode {
     private int shootHeadingUsed = SHOOT_HEADING;
 
     boolean launch_Done = false;
+    boolean double_Trouble = false;
     boolean stopped = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose shootPose = p.of(144-forward, 48, shootHeadingUsed);
     private final Pose startPose = p.of(144, 48, 0);
-    private final Pose seccondPose = p.of(140, 20, 0);
+    private final Pose seccondPos = p.of(135,110, 33);
+    private final Pose seccondPose = p.of(32,34,216);
     private final Pose park = p.of(GARDEN_PARK_X, GARDEN_PARK_Y, 0);
     private final Pose gardenPose = p.of(144,0,0);
 
@@ -76,6 +79,7 @@ public class AutoShootGarden extends OpMode {
 
     boolean kaboom = false;
     boolean boom = false;
+    boolean goSecond = true;  // GARDEN_GO_SECOND, snapshotted at the 14s mark
 
     // Which step of the auto we're in; shown every loop.
     private String phase = "waiting for start";
@@ -220,7 +224,7 @@ public class AutoShootGarden extends OpMode {
         telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
         telemetry.addData("Follower Mode", follower.mode());
 
-        if (System.currentTimeMillis() - startTime > 10_000) {
+        if (System.currentTimeMillis() - startTime > 6_000) {
             launcher.setVelocity(0);
             neoWindmill.setPower(0);
             launcher.setPower(0);
@@ -237,7 +241,7 @@ public class AutoShootGarden extends OpMode {
                 intake.setPower(1);
             }
             // Checked every loop (not just once above) so it actually fires at the 20s mark.
-            if (!stopped && System.currentTimeMillis() - startTime > 12_000) {
+            if (!stopped && System.currentTimeMillis() - startTime > 7_000) {
                 stopped = true;
                 phase = "driving into garden";
                 Constants.foresightConfig.maxPathSpeed.set(1.0);
@@ -248,14 +252,32 @@ public class AutoShootGarden extends OpMode {
                 Constants.foresightConfig.maxPathSpeed.set(20.0);
 
             }
-            if (!boom && System.currentTimeMillis() - startTime > 19_000) {
+            if (!boom && System.currentTimeMillis() - startTime > 14_000) {
                 boom = true;
-                phase = "garden to seccondPose";
+                goSecond = GARDEN_GO_SECOND;
                 Scheduler.reset();  // cancel whatever command is still running
-                follower.stop();    // and stop the drivetrain from following its path
-                schedule(follow(follower, GardenToSecond()));
+                follower.stop();// and stop the drivetrain from following its path
+                if (goSecond) {
+                    phase = "garden to seccondPose";
+                    launcher.setVelocity(autoLauncherTargetVelocity());
+                    schedule(follow(follower, GardenToSecond()));
+                } else {
+                    kaboom = true;  // skip the 26s park below; we're parking now
+                    phase = "parking";
+                    schedule(follow(follower, park()));
+                }
             }
-            if (!kaboom && System.currentTimeMillis() - startTime > 21_000) {
+            if (goSecond && System.currentTimeMillis() - startTime > 18_000 && System.currentTimeMillis() - startTime < 26_000) {
+                launcher.setVelocity(autoLauncherTargetVelocity());
+                if (launcher.getVelocity() >= autoLauncherMinVelocity()) {
+                    windmillFeeder.feed();
+                    neoWindmill.setPower(1);
+                    intakePower += 0.5;
+                } else {
+                    windmillFeeder.stop();
+                }
+            }
+            if (!kaboom && System.currentTimeMillis() - startTime > 26_000) {
                 kaboom = true;
                 phase = "parking";
                 Scheduler.reset();  // cancel whatever command is still running

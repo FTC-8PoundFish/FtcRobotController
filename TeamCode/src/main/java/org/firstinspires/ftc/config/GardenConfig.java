@@ -27,4 +27,7 @@ public class GardenConfig {
     // gardenPose is past the wall, so the robot may never "finish" toGarden; start the
     // jiggle after this long regardless.
     public static int GARDEN_DRIVE_MAX_MS = 2500;
+    // At 14s: true = drive to the second pose, shoot (18-26s), then park at 26s.
+    // false = skip the second pose and park right away. Read at the 14s mark.
+    public static boolean GARDEN_GO_SECOND = true;
 }
