@@ -48,7 +48,6 @@ public class AutoShootGarden extends OpMode {
     private int shootHeadingUsed = SHOOT_HEADING;
 
     boolean launch_Done = false;
-    boolean double_Trouble = false;
     boolean stopped = false;
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
