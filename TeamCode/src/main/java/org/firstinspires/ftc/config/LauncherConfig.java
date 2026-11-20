@@ -17,7 +17,7 @@ public class LauncherConfig {
     private static final int DEFAULT_LAUNCHER_TARGET_VELOCITY = 1165;
     private static final int DEFAULT_LAUNCHER_GAP = 35;
 
-    private static final int DEFAULT_AUTO_LAUNCHER_TARGET_VELOCITY = 1155;
+    private static final int DEFAULT_AUTO_LAUNCHER_TARGET_VELOCITY = 1165;
     private static final int DEFAULT_AUTO_LAUNCHER_GAP = 35;
 
     // Launcher speed to shoot at.
