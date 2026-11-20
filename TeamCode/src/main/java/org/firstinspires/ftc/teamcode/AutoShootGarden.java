@@ -15,7 +15,7 @@ import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherTargetVelo
  *   18-26s  shoot again
  *   26s     park
  */
-@Autonomous(name = "AutoShootGarden", group = "OpMode")
+@Autonomous(name = "Twice_The_Fun", group = "OpMode")
 public class AutoShootGarden extends GardenAutoBase {
     private final Pose seccondPose = p.of(32,34,216);
 

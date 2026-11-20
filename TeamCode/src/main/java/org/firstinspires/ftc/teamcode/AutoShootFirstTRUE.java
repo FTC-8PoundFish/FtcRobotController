@@ -13,7 +13,7 @@ import static org.firstinspires.ftc.config.GardenConfig.GARDEN_AROUND_Y;
  * Garden auto (see GardenAutoBase), then park right away at 14s instead of going to the
  * second pose to shoot again.
  */
-@Autonomous(name = "AutoShootFirstTRUE", group = "OpMode")
+@Autonomous(name = "SingleShot", group = "OpMode")
 public class AutoShootFirstTRUE extends GardenAutoBase {
     private boolean kaboom = false;
 
