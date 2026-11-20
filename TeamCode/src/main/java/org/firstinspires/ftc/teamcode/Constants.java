@@ -18,7 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
     // Not used anymore:
-    // DriveTest / AutoShootFirst / AutoShootSecond use LauncherConfig instead
+    // DriveTest / AutoShootFirst / AutoShootBASE use LauncherConfig instead
     public static int LAUNCHER_TARGET_VELOCITY = 1180; //2678 RPM
     public static int LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 20;
 

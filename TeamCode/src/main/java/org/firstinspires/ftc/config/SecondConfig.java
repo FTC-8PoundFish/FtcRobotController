@@ -3,7 +3,7 @@ package org.firstinspires.ftc.config;
 import com.acmerobotics.dashboard.config.Config;
 
 /*
- * Tunables for AutoShootSecond. Tune them live from FTC Dashboard
+ * Tunables for AutoShootRED / AutoShootBLUE (AutoShootBASE). Tune them live from FTC Dashboard
  * (http://192.168.43.1:8080/dash) under "SecondConfig". Its launcher speeds are in
  * LauncherConfig (secondLauncherTargetVelocity, secondLauncherGap).
  *
@@ -25,12 +25,6 @@ public class SecondConfig {
     // Seen later: flower, then park. Read after the first shot.
     public static int EARLY_TAG_MS = 11_000;
 
-    // Which AprilTags the Limelight waits for before driving to shootPose. Shows as a
-    // dropdown on FTC Dashboard: BLUE -> tags 42-45, RED -> tags 30-33, ANY -> any tag
-    // that wasn't visible during init. Read when the auto starts.
-    public enum WaitTag { ANY, RED, BLUE }
-    public static WaitTag SECOND_WAIT_TAG = WaitTag.ANY;
-
     // At the flower, how long to wait after lowering the flower intake before the jiggle
     // starts, so it's fully down first. Read when the flower starts lowering.
     public static int SECOND_FLOWER_DOWN_MS = 500;
@@ -42,7 +36,7 @@ public class SecondConfig {
     public static int SECOND_JIGGLE_STOP_MS = 3000;
     // Max time for each drive (forward or back), in case the robot can't quite reach the end.
     public static int SECOND_JIGGLE_HALF_MS = 400;
-    // AutoShootSecond's own launcher speed and feed gap.
+    // AutoShootBASE's own launcher speed and feed gap.
     private static final int DEFAULT_SECOND_LAUNCHER_TARGET_VELOCITY = 1160;
     private static final int DEFAULT_SECOND_LAUNCHER_GAP = 35;
 

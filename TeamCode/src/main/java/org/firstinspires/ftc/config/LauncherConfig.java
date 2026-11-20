@@ -3,7 +3,7 @@ package org.firstinspires.ftc.config;
 import com.acmerobotics.dashboard.config.Config;
 
 /*
- * Launcher speeds shared by DriveTest, AutoShootFirst and AutoShootSecond. Tune them live
+ * Launcher speeds shared by DriveTest, AutoShootFirst and AutoShootBASE. Tune them live
  * from FTC Dashboard (http://192.168.43.1:8080/dash) under "LauncherConfig".
  *
  * The OpModes read these every time they use them, so a change on the dashboard takes

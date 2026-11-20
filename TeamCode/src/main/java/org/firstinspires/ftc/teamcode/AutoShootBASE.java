@@ -41,18 +41,15 @@ import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_HALF_MS;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_INCHES;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_STOP_MS;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_FLOWER_DOWN_MS;
-import static org.firstinspires.ftc.config.SecondConfig.SECOND_WAIT_TAG;
-import org.firstinspires.ftc.config.SecondConfig;
 import static org.firstinspires.ftc.config.SecondConfig.secondLauncherMinVelocity;
 import static org.firstinspires.ftc.config.SecondConfig.secondLauncherTargetVelocity;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-
 /*
- * Launcher speeds come from LauncherConfig (tunable on FTC Dashboard).
+ * Shared code for AutoShootRED and AutoShootBLUE. The only difference between them is which
+ * AprilTags they wait for (allianceName() / isOurTag()).
+ * Tunables are in SecondConfig (tunable on FTC Dashboard).
  */
-@Autonomous(name = "AutoShootSecond", group = "OpMode")
-public class AutoShootSecond extends OpMode {
+public abstract class AutoShootBASE extends OpMode {
 
     private long startTime;
 
@@ -88,12 +85,9 @@ public class AutoShootSecond extends OpMode {
     // Set by each step of autoRoutine() and shown every loop.
     private String autoStage = "waiting for start";
 
-    // Start shooting as soon as the Limelight sees the tag we're waiting for. If it still
-    // hasn't shown up when less than PARK_RESERVE_MS of the auto is left, skip shooting and
-    // just park. SecondConfig.SECOND_WAIT_TAG (FTC Dashboard dropdown) decides what we wait for:
-    //   BLUE -> wait for any blue tag (42-45)
-    //   RED  -> wait for any red tag (30-33)
-    //   ANY  -> wait for any tag ID that wasn't visible during init
+    // Start shooting as soon as the Limelight sees one of our alliance's tags (isOurTag()).
+    // If it still hasn't shown up when less than PARK_RESERVE_MS of the auto is left, skip
+    // shooting and just park.
     private static final int APRILTAG_PIPELINE = 1;
     // The autonomous period is 30s. Once less than PARK_RESERVE_MS is left we head straight
     // to park so we make it in time.
@@ -101,30 +95,18 @@ public class AutoShootSecond extends OpMode {
     private static final long PARK_RESERVE_MS = 8_000;
     // When the tag was seen (ms after start), compared against SecondConfig.EARLY_TAG_MS.
     private long tagSeenAtMs = -1;
-    private static final int RED_TAG_MIN = 30, RED_TAG_MAX = 33;
-    private static final int BLUE_TAG_MIN = 42, BLUE_TAG_MAX = 45;
+    protected static final int RED_TAG_MIN = 30, RED_TAG_MAX = 33;
+    protected static final int BLUE_TAG_MIN = 42, BLUE_TAG_MAX = 45;
     private Limelight3A limelight;
     private final Set<Integer> knownTagIds = new HashSet<>();
     private boolean watchingForNewTag = false;
-    private String waitingFor = "any new tag";  // "red", "blue" or "any new tag"
     private int newTagId = -1;
 
-    private static boolean isRed(int id) {
-        return id >= RED_TAG_MIN && id <= RED_TAG_MAX;
-    }
-    private static boolean isBlue(int id) {
-        return id >= BLUE_TAG_MIN && id <= BLUE_TAG_MAX;
-    }
+    // "red" or "blue"; shown in telemetry.
+    protected abstract String allianceName();
 
-    private void chooseTagToWaitFor() {
-        if (SECOND_WAIT_TAG == SecondConfig.WaitTag.BLUE) {
-            waitingFor = "blue";
-        } else if (SECOND_WAIT_TAG == SecondConfig.WaitTag.RED) {
-            waitingFor = "red";
-        } else {
-            waitingFor = "any new tag";
-        }
-    }
+    // Whether this AprilTag ID is one of the tags we wait for before shooting.
+    protected abstract boolean isOurTag(int id);
 
 
     private Path startToShoot() {
@@ -278,14 +260,13 @@ public class AutoShootSecond extends OpMode {
                 }));
         // Tag never seen before time ran low: don't shoot, drive straight through to park.
         Command noTagPark = sequential(
-                instant(() -> autoStage = "no " + waitingFor + " tag, parking without shooting"),
+                instant(() -> autoStage = "no " + allianceName() + " tag, parking without shooting"),
                 driveToShoot,
                 parkFromShoot("no tag seen"));
         return sequential(
                 instant(() -> {
-                    chooseTagToWaitFor();
                     watchingForNewTag = true;  // loop() sets newTagId when that tag shows up
-                    autoStage = "waiting for " + waitingFor + " AprilTag";
+                    autoStage = "waiting for " + allianceName() + " AprilTag";
                 }),
                 waitUntil(() -> newTagId >= 0 || lowOnTime()),
                 instant(() -> {
@@ -311,8 +292,8 @@ public class AutoShootSecond extends OpMode {
         limelight.stop();
     }
 
-    // Tags visible before we start watching count as "already there"; after that, we look
-    // for a tag matching waitingFor.
+    // Before we start watching, just record which tags are visible (shown in telemetry);
+    // after that, look for one of our alliance's tags.
     private void updateTags() {
         LLResult result = limelight.getLatestResult();
         if (result == null || !result.isValid()) {
@@ -322,20 +303,10 @@ public class AutoShootSecond extends OpMode {
             int id = tag.getFiducialId();
             if (!watchingForNewTag) {
                 knownTagIds.add(id);
-            } else if (newTagId < 0 && isTagWeAreWaitingFor(id)) {
+            } else if (newTagId < 0 && isOurTag(id)) {
                 newTagId = id;
             }
         }
-    }
-
-    private boolean isTagWeAreWaitingFor(int id) {
-        if (waitingFor.equals("red")) {
-            return isRed(id);
-        }
-        if (waitingFor.equals("blue")) {
-            return isBlue(id);
-        }
-        return !knownTagIds.contains(id);
     }
 
     @Override

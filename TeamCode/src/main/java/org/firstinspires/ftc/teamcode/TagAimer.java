@@ -19,7 +19,7 @@ import java.util.List;
  */
 public class TagAimer {
 
-    private static final int APRILTAG_PIPELINE = 1;  // same pipeline as AutoShootSecond
+    private static final int APRILTAG_PIPELINE = 1;  // same pipeline as AutoShootBASE
 
     // Turn power per degree of error. Flip the sign if the robot turns away from the tags.
     private static final double AIM_KP = 0.02;
