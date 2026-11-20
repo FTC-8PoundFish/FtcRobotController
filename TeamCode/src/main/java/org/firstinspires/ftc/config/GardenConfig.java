@@ -30,4 +30,7 @@ public class GardenConfig {
     // At 14s: true = drive to the second pose, shoot (18-26s), then park at 26s.
     // false = skip the second pose and park right away. Read at the 14s mark.
     public static boolean GARDEN_GO_SECOND = true;
+    // When GARDEN_GO_SECOND is false: drive up to this y first to get around the middle
+    // garden, then go to park. Read at the 14s mark.
+    public static double GARDEN_AROUND_Y = 15;
 }

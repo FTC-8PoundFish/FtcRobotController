@@ -30,6 +30,7 @@ import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherMinVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.autoLauncherTargetVelocity;
 import static org.firstinspires.ftc.config.LauncherConfig.forward;
+import static org.firstinspires.ftc.config.GardenConfig.GARDEN_AROUND_Y;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_DRIVE_MAX_MS;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_GO_SECOND;
 import static org.firstinspires.ftc.config.GardenConfig.GARDEN_JIGGLE_HALF_MS;
@@ -53,7 +54,6 @@ public class AutoShootGarden extends OpMode {
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose shootPose = p.of(144-forward, 48, shootHeadingUsed);
     private final Pose startPose = p.of(144, 48, 0);
-    private final Pose seccondPos = p.of(135,110, 33);
     private final Pose seccondPose = p.of(32,34,216);
     private final Pose park = p.of(GARDEN_PARK_X, GARDEN_PARK_Y, 0);
     private final Pose gardenPose = p.of(144,0,0);
@@ -102,6 +102,16 @@ public class AutoShootGarden extends OpMode {
     }
     private Path park() {
         return line(seccondPose, park).linear(seccondPose, park);
+    }
+    // Straight from the garden to park would cut through the middle garden, so first drive
+    // up to y = GARDEN_AROUND_Y (keeping the current x), then over to park.
+    private Command gardenToPark() {
+        Pose here = follower.pose();
+        Pose from = p.of(here.x(), here.y(), Math.toDegrees(here.heading()));
+        Pose around = p.of(here.x() - 30, GARDEN_AROUND_Y, 0);
+        return sequential(
+                follow(follower, line(from, around).linear(from, around)),
+                follow(follower, line(around, park).linear(around, park)));
     }
     private Path startToShoot() {
         return line(startPose, shootPose).linear(startPose, shootPose);
@@ -263,7 +273,7 @@ public class AutoShootGarden extends OpMode {
                 } else {
                     kaboom = true;  // skip the 26s park below; we're parking now
                     phase = "parking";
-                    schedule(follow(follower, park()));
+                    schedule(gardenToPark());
                 }
             }
             if (goSecond && System.currentTimeMillis() - startTime > 18_000 && System.currentTimeMillis() - startTime < 26_000) {
