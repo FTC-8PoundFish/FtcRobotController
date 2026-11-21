@@ -23,6 +23,7 @@ import com.qualcomm.hardware.limelightvision.Limelight3A;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.LongSupplier;
 
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.pedropathing.ivy.groups.Groups.race;
@@ -35,12 +36,15 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static org.firstinspires.ftc.config.FlowerConfig.flower90Deg;
 import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_SHOOT;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_SHOOT_TIME;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_PARK_RESERVE_MS;
 import static org.firstinspires.ftc.config.SecondConfig.SHOOT_TIME;
 import static org.firstinspires.ftc.config.SecondConfig.EARLY_TAG_MS;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_HALF_MS;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_INCHES;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_STOP_MS;
 import static org.firstinspires.ftc.config.SecondConfig.SECOND_FLOWER_DOWN_MS;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_FLOWER_Y;
 import static org.firstinspires.ftc.config.SecondConfig.secondLauncherMinVelocity;
 import static org.firstinspires.ftc.config.SecondConfig.secondLauncherTargetVelocity;
 
@@ -59,7 +63,8 @@ public abstract class AutoShootBASE extends OpMode {
     private Follower follower;
     private final PoseFactory p = PoseFactory.degrees();
     private final Pose startPose = p.of(144, 84, 0);
-    private final Pose flowerPose = p.of(127,100,0 );
+    // y from SecondConfig.SECOND_FLOWER_Y (FTC Dashboard), read when INIT is pressed.
+    private final Pose flowerPose = p.of(127, SECOND_FLOWER_Y, 0);
     // move forward for 0 inches to shoot (shoot from startPose)
     private static final int forward = 0;
     private final Pose shootPose = p.of(144 - forward, 84, 0);
@@ -95,8 +100,13 @@ public abstract class AutoShootBASE extends OpMode {
     private static final long PARK_RESERVE_MS = 8_000;
     // When the tag was seen (ms after start), compared against SecondConfig.EARLY_TAG_MS.
     private long tagSeenAtMs = -1;
-    protected static final int RED_TAG_MIN = 30, RED_TAG_MAX = 33;
-    protected static final int BLUE_TAG_MIN = 42, BLUE_TAG_MAX = 45;
+    // From the BIOBUZZ manual (9.9): each color has two CELLs with a cluster of 4 tags each.
+    //   red:  30-33 (far from audience), 34-37 (audience side)
+    //   blue: 38-41 (audience side),     42-45 (far from audience)
+    // Accept both clusters of our color, in case the robot sees the other cell or the
+    // stickers are swapped between cells.
+    protected static final int RED_TAG_MIN = 30, RED_TAG_MAX = 37;
+    protected static final int BLUE_TAG_MIN = 38, BLUE_TAG_MAX = 45;
     private Limelight3A limelight;
     private final Set<Integer> knownTagIds = new HashSet<>();
     private boolean watchingForNewTag = false;
@@ -139,15 +149,18 @@ public abstract class AutoShootBASE extends OpMode {
 
     // Shoot for SHOOT_TIME at the SecondConfig launcher speed, then stop the launcher.
     // Built fresh each time.
-    private Command shoot(String label) {
+    private Command shoot(String label, LongSupplier time) {
         return sequential(
                 instant(() -> {
-                    autoStage = label + ":" + secondLauncherTargetVelocity();
                     launcher.setVelocity(secondLauncherTargetVelocity());
                     launching = true;  // loop() feeds the windmill while this is true
                 }),
-                // Built when reached, so a dashboard change to SHOOT_TIME applies.
-                lazy(() -> waitMs(SHOOT_TIME)),
+                // Built when reached, so dashboard changes and the time left on the clock apply.
+                lazy(() -> {
+                    long ms = time.getAsLong();
+                    autoStage = label + ":" + secondLauncherTargetVelocity() + " for " + ms + "ms";
+                    return waitMs(ms);
+                }),
                 instant(() -> {
                     launching = false;
                     launcher.setVelocity(0);
@@ -214,6 +227,14 @@ public abstract class AutoShootBASE extends OpMode {
                         waitMs(SECOND_JIGGLE_HALF_MS)));
     }
 
+
+    // Absolute difference between the robot's heading and target (radians), in degrees.
+    private double headingErrorDeg(double target) {
+        double diff = follower.pose().heading() - target;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));  // wrap to -pi..pi
+        return Math.abs(Math.toDegrees(diff));
+    }
+
     // The whole auto. Each step starts as soon as the previous one finishes.
     private Command autoRoutine() {
         // With forward = 0 we already start at shootPose, so don't build or follow a
@@ -230,7 +251,9 @@ public abstract class AutoShootBASE extends OpMode {
                 flowerTrip(),
                 instant(() -> autoStage = "going to twiceTheFun for second shot"),
                 follow(follower, secondShot()),
-                shoot("second shot"),
+                // Shoot for at least SECOND_SHOOT_TIME, and keep going until only
+                // SECOND_PARK_RESERVE_MS of the 30s is left for parking.
+                shoot("second shot", () -> Math.max(SECOND_SHOOT_TIME, msLeft() - SECOND_PARK_RESERVE_MS)),
                 // secondShot() ends at twiceTheFun, not shootPose, so park from there.
                 instant(() -> autoStage = "parking (after second shot)"),
                 follow(follower, twiceThePark()));
@@ -241,7 +264,7 @@ public abstract class AutoShootBASE extends OpMode {
                 lazy(() -> {
                     shooting = SECOND_SHOOT;
                     if (shooting) {
-                        return shoot("launching tag " + newTagId);
+                        return shoot("launching tag " + newTagId, () -> SHOOT_TIME);
                     }
                     autoStage = "not shooting (SECOND_SHOOT off), waiting " + SHOOT_TIME + "ms";
                     return waitMs(SHOOT_TIME);

@@ -19,11 +19,20 @@ public class SecondConfig {
     // How long (ms) the robot stays at shootPose shooting before moving on. Read when the
     // robot reaches shootPose.
     public static int SHOOT_TIME = 4_000;
+    // Second shot (at twiceTheFun): shoot for at least SECOND_SHOOT_TIME, and keep shooting
+    // until only SECOND_PARK_RESERVE_MS of the 30s auto is left to drive to park. Read when
+    // the second shot starts.
+    public static int SECOND_SHOOT_TIME = 5_500;
+    public static int SECOND_PARK_RESERVE_MS = 5_000;
 
     // If the AprilTag is seen within EARLY_TAG_MS (ms after start), there's time for the
     // two-shot route after the first shot: flower, to twiceTheFun, shoot again, park.
     // Seen later: flower, then park. Read after the first shot.
     public static int EARLY_TAG_MS = 11_000;
+
+    // y (inches) of flowerPose, where the robot drives to pick up at the flower (x is 127).
+    // Read when INIT is pressed.
+    public static double SECOND_FLOWER_Y = 97;
 
     // At the flower, how long to wait after lowering the flower intake before the jiggle
     // starts, so it's fully down first. Read when the flower starts lowering.
@@ -37,7 +46,7 @@ public class SecondConfig {
     // Max time for each drive (forward or back), in case the robot can't quite reach the end.
     public static int SECOND_JIGGLE_HALF_MS = 400;
     // AutoShootBASE's own launcher speed and feed gap.
-    private static final int DEFAULT_SECOND_LAUNCHER_TARGET_VELOCITY = 1160;
+    private static final int DEFAULT_SECOND_LAUNCHER_TARGET_VELOCITY = 1155;
     private static final int DEFAULT_SECOND_LAUNCHER_GAP = 35;
 
     public static int secondLauncherTargetVelocity = DEFAULT_SECOND_LAUNCHER_TARGET_VELOCITY;

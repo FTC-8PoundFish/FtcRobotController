@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /*
- * AutoShootBASE, waiting for a blue AprilTag (42-45) before shooting.
+ * AutoShootBASE, waiting for a blue AprilTag (38-45) before shooting.
  */
 @Autonomous(name = "AutoShootBLUE", group = "OpMode")
 public class AutoShootBLUE extends AutoShootBASE {

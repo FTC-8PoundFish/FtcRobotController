@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.teamcode.AutoShootBASE.BLUE_TAG_MIN;
+import static org.firstinspires.ftc.teamcode.AutoShootBASE.RED_TAG_MIN;
+
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -33,13 +36,18 @@ public class TagAimer {
     private final Telemetry telemetry;
 
     public TagAimer(HardwareMap hardwareMap, Telemetry telemetry, boolean red) {
-        this.red = red;
-        this.groupFirstIds = red ? new int[]{30, 34} : new int[]{38, 42};
-        this.telemetry = telemetry;
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        this(hardwareMap.get(Limelight3A.class, "limelight"), telemetry, red);
         limelight.setPollRateHz(100);
         limelight.pipelineSwitch(APRILTAG_PIPELINE);
         limelight.start();
+    }
+
+    // Uses a Limelight the caller has already set up and started (e.g. AutoShootBASE).
+    public TagAimer(Limelight3A limelight, Telemetry telemetry, boolean red) {
+        this.red = red;
+        this.groupFirstIds = red ? new int[]{RED_TAG_MIN, RED_TAG_MIN + 4} : new int[]{BLUE_TAG_MIN, BLUE_TAG_MIN + 4};
+        this.telemetry = telemetry;
+        this.limelight = limelight;
     }
 
     public String colorName() {
