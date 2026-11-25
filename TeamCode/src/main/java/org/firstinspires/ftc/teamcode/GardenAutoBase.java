@@ -55,6 +55,7 @@ public abstract class GardenAutoBase extends OpMode {
     protected Follower follower;
     protected final PoseFactory p = PoseFactory.degrees();
     private final Pose shootPose = p.of(144-forward, 48, shootHeadingUsed);
+
     private final Pose startPose = p.of(144, 48, 0);
     protected final Pose park = p.of(GARDEN_PARK_X, GARDEN_PARK_Y, 0);
     protected final Pose gardenPose = p.of(144,0,0);

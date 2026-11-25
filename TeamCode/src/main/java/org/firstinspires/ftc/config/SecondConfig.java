@@ -32,7 +32,7 @@ public class SecondConfig {
 
     // y (inches) of flowerPose, where the robot drives to pick up at the flower (x is 127).
     // Read when INIT is pressed.
-    public static double SECOND_FLOWER_Y = 97;
+    public static double SECOND_FLOWER_Y = 99;
 
     // At the flower, how long to wait after lowering the flower intake before the jiggle
     // starts, so it's fully down first. Read when the flower starts lowering.

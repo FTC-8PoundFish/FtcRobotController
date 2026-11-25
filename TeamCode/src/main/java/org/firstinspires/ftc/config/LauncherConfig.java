@@ -29,6 +29,9 @@ public class LauncherConfig {
     // Feed only once the launcher is within this much of launcherTargetVelocity.
     public static int autoLauncherGap = DEFAULT_AUTO_LAUNCHER_GAP;
 
+    // NewGen only: target launcher velocity for nectar. Not wired into any OpMode yet.
+    public static int nectarTargetVelocity = 0;
+
     // How many inches AutoShootFirst and AutoShootGarden drive forward from startPose to shootPose. 0 is
     // allowed (shoot from startPose). Read when INIT is pressed.
     public static int forward = 0;

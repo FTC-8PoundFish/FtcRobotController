@@ -14,7 +14,7 @@ import com.acmerobotics.dashboard.config.Config;
  */
 @Config
 public class FlowerConfig {
-    private static final double DEFAULT_FLOWER_HOME = 0.47;
+    private static final double DEFAULT_FLOWER_HOME = 0.28;
     private static final double DEFAULT_FLOWER_90_DEG = 0.5;
     private static final double DEFAULT_FLOWER_NECTAR_BLOCK = 0.36;
     private static final double DEFAULT_FLOWER_NUDGE_PER_SEC = 0.25;

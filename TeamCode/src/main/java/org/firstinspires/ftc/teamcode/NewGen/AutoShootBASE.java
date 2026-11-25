@@ -1,0 +1,475 @@
+package org.firstinspires.ftc.teamcode.NewGen;
+
+import static com.pedropathing.api.Paths.line;
+import static com.pedropathing.ivy.Scheduler.schedule;
+import static com.pedropathing.ivy.commands.Commands.instant;
+import static com.pedropathing.ivy.commands.Commands.lazy;
+import static com.pedropathing.ivy.commands.Commands.waitMs;
+import static com.pedropathing.ivy.commands.Commands.waitUntil;
+import static com.pedropathing.ivy.groups.Groups.race;
+import static com.pedropathing.ivy.groups.Groups.sequential;
+import static com.pedropathing.ivy.pedro.PedroCommands.follow;
+import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static org.firstinspires.ftc.config.FlowerConfig.flower90Deg;
+import static org.firstinspires.ftc.config.FlowerConfig.flowerHome;
+import static org.firstinspires.ftc.config.LauncherConfig.nectarTargetVelocity;
+import static org.firstinspires.ftc.config.SecondConfig.EARLY_TAG_MS;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_FLOWER_DOWN_MS;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_FLOWER_Y;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_HALF_MS;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_INCHES;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_JIGGLE_STOP_MS;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_PARK_RESERVE_MS;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_SHOOT;
+import static org.firstinspires.ftc.config.SecondConfig.SECOND_SHOOT_TIME;
+import static org.firstinspires.ftc.config.SecondConfig.SHOOT_TIME;
+import static org.firstinspires.ftc.config.SecondConfig.secondLauncherGap;
+import static org.firstinspires.ftc.config.SecondConfig.secondLauncherMinVelocity;
+import static org.firstinspires.ftc.config.SecondConfig.secondLauncherTargetVelocity;
+
+import com.pedropathing.api.PoseFactory;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.ivy.Command;
+import com.pedropathing.ivy.Scheduler;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.teamcode.Constants;
+import org.firstinspires.ftc.teamcode.OpModeStorage;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.LongSupplier;
+
+/*
+ * Shared code for AutoShootRED and AutoShootBLUE. The only difference between them is which
+ * AprilTags they wait for (allianceName() / isOurTag()).
+ * Tunables are in SecondConfig (tunable on FTC Dashboard).
+ */
+public abstract class AutoShootBASE extends OpMode {
+
+    private long startTime;
+
+    private boolean launching = false;
+    // SECOND_SHOOT as read at shootPose; also decides whether we go to the flower after.
+    private boolean shooting = false;
+    private Follower follower;
+    private final PoseFactory p = PoseFactory.degrees();
+    private final Pose startPose = p.of(144, 84, 0);
+    // y from SecondConfig.SECOND_FLOWER_Y (FTC Dashboard), read when INIT is pressed.
+    private final Pose flowerPose = p.of(127, SECOND_FLOWER_Y, 0);
+    // move forward for 0 inches to shoot (shoot from startPose)
+    private static final int forward = 0;
+    private final Pose shootPose = p.of(144 - forward, 84, 0);
+    private final Pose park = p.of(127, 130, 0);
+    private final Pose twiceTheFun = p.of(135,110, 33);
+
+    private DcMotorEx launcher = null;
+    private DcMotor intake = null;
+    // Second launcher ("launcher2"), same as Driving's nectarLauncher. Spins at
+    // LauncherConfig.nectarTargetVelocity whenever the main launcher is on.
+    private DcMotorEx nectarLauncher = null;
+    // Flower positions come from FlowerConfig (tunable on FTC Dashboard), same as DriveTest.
+    private Servo rightFlowerIntakeServo = null;
+    private Servo leftflowerIntakeServo = null;
+    double intakePower;
+
+    private GoBildaPinpointDriver odo;
+
+    // Windmill CR servos, same as NewGen Driving:
+    //   Windmill  ("pollenServo1") and Windmill4 ("nectarServo2") run with the intake, and
+    //   Windmill also runs while feeding.
+    //   Windmill2 ("pollenServo2") and Windmill3 ("nectarServo1") feed the launchers
+    //   (windmillFeeder).
+    private CRServo Windmill = null;
+    private CRServo Windmill2 = null;
+    private CRServo Windmill3 = null;
+    private CRServo Windmill4 = null;
+    private WindmillFeeder windmillFeeder;
+
+    // Intake motor plus the two windmills that run with it, as in Driving.
+    private void setIntake(double power) {
+        intake.setPower(power);
+        Windmill.setPower(power);
+        Windmill4.setPower(power);
+    }
+
+    public static int Launcher_Velocity = 0;
+
+    // Set by each step of autoRoutine() and shown every loop.
+    private String autoStage = "waiting for start";
+
+    // Start shooting as soon as the Limelight sees one of our alliance's tags (isOurTag()).
+    // If it still hasn't shown up when less than PARK_RESERVE_MS of the auto is left, skip
+    // shooting and just park.
+    private static final int APRILTAG_PIPELINE = 1;
+    // The autonomous period is 30s. Once less than PARK_RESERVE_MS is left we head straight
+    // to park so we make it in time.
+    private static final long AUTO_LENGTH_MS = 30_000;
+    private static final long PARK_RESERVE_MS = 8_000;
+    // When the tag was seen (ms after start), compared against SecondConfig.EARLY_TAG_MS.
+    private long tagSeenAtMs = -1;
+    // From the BIOBUZZ manual (9.9): each color has two CELLs with a cluster of 4 tags each.
+    //   red:  30-33 (far from audience), 34-37 (audience side)
+    //   blue: 38-41 (audience side),     42-45 (far from audience)
+    // Accept both clusters of our color, in case the robot sees the other cell or the
+    // stickers are swapped between cells.
+    protected static final int RED_TAG_MIN = 30, RED_TAG_MAX = 37;
+    protected static final int BLUE_TAG_MIN = 38, BLUE_TAG_MAX = 45;
+    private Limelight3A limelight;
+    private final Set<Integer> knownTagIds = new HashSet<>();
+    private boolean watchingForNewTag = false;
+    private int newTagId = -1;
+
+    // "red" or "blue"; shown in telemetry.
+    protected abstract String allianceName();
+
+    // Whether this AprilTag ID is one of the tags we wait for before shooting.
+    protected abstract boolean isOurTag(int id);
+
+
+    private Path startToShoot() {
+        return line(startPose, shootPose).linear(startPose, shootPose);
+    }
+    private Path toFlower(){
+        return line(shootPose,flowerPose).linear(shootPose,flowerPose);
+    }
+    private Path flowerToPark() {
+        return line(flowerPose, park).linear(flowerPose, park);
+    }
+    private Path shootToPark() {
+        return line(shootPose, park).linear(shootPose, park);
+    }
+    private Path secondShot() {
+        return line(flowerPose, twiceTheFun).linear(flowerPose, twiceTheFun);
+    }
+
+    private Path twiceThePark(){
+        return line(twiceTheFun,park).linear(twiceTheFun,park);
+    }
+
+    private long msLeft() {
+        return AUTO_LENGTH_MS - (System.currentTimeMillis() - startTime);
+    }
+
+    private boolean lowOnTime() {
+        return msLeft() < PARK_RESERVE_MS;
+    }
+
+    // Shoot for SHOOT_TIME at the SecondConfig launcher speed, then stop the launcher.
+    // Built fresh each time.
+    private Command shoot(String label, LongSupplier time) {
+        return sequential(
+                instant(() -> {
+                    launcher.setVelocity(secondLauncherTargetVelocity());
+                    nectarLauncher.setVelocity(nectarTargetVelocity);
+                    launching = true;  // loop() feeds the windmill while this is true
+                }),
+                // Built when reached, so dashboard changes and the time left on the clock apply.
+                lazy(() -> {
+                    long ms = time.getAsLong();
+                    autoStage = label + ":" + secondLauncherTargetVelocity() + " for " + ms + "ms";
+                    return waitMs(ms);
+                }),
+                instant(() -> {
+                    launching = false;
+                    launcher.setVelocity(0);
+                    nectarLauncher.setVelocity(0);
+                    windmillFeeder.stop();
+                }));
+    }
+
+    // shootPose -> flower, lower it, jiggle, raise it. Ends at flowerPose. Built fresh each time.
+    private Command flowerTrip() {
+        return sequential(
+                instant(() -> {
+                    autoStage = "going to flower";
+                    // Intake on, same as left_trigger in DriveTest.
+                    setIntake(1);
+                }),
+                follow(follower, toFlower()),
+                instant(() -> {
+                    // Flower down, same as dpad_down in DriveTest.
+                    double flowerDown = Math.max(0.0, Math.min(1.0, flowerHome() + flower90Deg()));
+                    rightFlowerIntakeServo.setPosition(flowerDown);
+                    leftflowerIntakeServo.setPosition(flowerDown);
+                    autoStage = "lowering flower";
+                }),
+                // Servos don't report position, so give them time to get all the way down.
+                lazy(() -> waitMs(SECOND_FLOWER_DOWN_MS)),
+                instant(() -> autoStage = "jiggling at flower"),
+                lazy(this::jiggle),
+                instant(() -> {
+                    // Flower back up to home, same as dpad_up in DriveTest.
+                    rightFlowerIntakeServo.setPosition(flowerHome());
+                    leftflowerIntakeServo.setPosition(flowerHome());
+                }));
+    }
+
+    // Drive from shootPose straight to park, no stops. Built fresh each time.
+    private Command parkFromShoot(String why) {
+        return sequential(
+                instant(() -> autoStage = "parking (" + why + ")"),
+                follow(follower, shootToPark()));
+    }
+
+    private static boolean samePose(Pose a, Pose b) {
+        return a.x() == b.x() && a.y() == b.y() && a.heading() == b.heading();
+    }
+
+    // One rock from wherever the robot is now: drive forward SECOND_JIGGLE_INCHES, stop for
+    // SECOND_JIGGLE_STOP_MS, drive back. Built when it starts, so it uses the robot's actual
+    // pose and the current dashboard values.
+    private Command jiggle() {
+        Pose here = follower.pose();
+        double heading = here.heading();
+        Pose anchor = p.of(here.x(), here.y(), Math.toDegrees(heading));
+        Pose ahead = p.of(
+                here.x() + SECOND_JIGGLE_INCHES * Math.cos(heading),
+                here.y() + SECOND_JIGGLE_INCHES * Math.sin(heading),
+                Math.toDegrees(heading));
+        return sequential(
+                race(follow(follower, line(anchor, ahead).linear(anchor, ahead)),
+                        waitMs(SECOND_JIGGLE_HALF_MS)),
+                waitMs(SECOND_JIGGLE_STOP_MS),
+                race(follow(follower, line(ahead, anchor).linear(ahead, anchor)),
+                        waitMs(SECOND_JIGGLE_HALF_MS)));
+    }
+
+
+    // Absolute difference between the robot's heading and target (radians), in degrees.
+    private double headingErrorDeg(double target) {
+        double diff = follower.pose().heading() - target;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));  // wrap to -pi..pi
+        return Math.abs(Math.toDegrees(diff));
+    }
+
+    // The whole auto. Each step starts as soon as the previous one finishes.
+    private Command autoRoutine() {
+        // With forward = 0 we already start at shootPose, so don't build or follow a
+        // zero-length path.
+        Command driveToShoot = samePose(startPose, shootPose)
+                ? instant(() -> autoStage = "already at shootPose")
+                : follow(follower, startToShoot());
+        Command flowerThenPark = sequential(
+                flowerTrip(),
+                instant(() -> autoStage = "parking"),
+                follow(follower, flowerToPark()));
+        // AutoShootTwice's route: flower, to twiceTheFun, shoot again, park.
+        Command flowerThenShootAgain = sequential(
+                flowerTrip(),
+                instant(() -> autoStage = "going to twiceTheFun for second shot"),
+                follow(follower, secondShot()),
+                // Shoot for at least SECOND_SHOOT_TIME, and keep going until only
+                // SECOND_PARK_RESERVE_MS of the 30s is left for parking.
+                shoot("second shot", () -> Math.max(SECOND_SHOOT_TIME, msLeft() - SECOND_PARK_RESERVE_MS)),
+                // secondShot() ends at twiceTheFun, not shootPose, so park from there.
+                instant(() -> autoStage = "parking (after second shot)"),
+                follow(follower, twiceThePark()));
+        // Tag seen: shoot, then go to the flower if there's time (and SECOND_SHOOT is on),
+        // otherwise park straight from shootPose.
+        Command shootThenContinue = sequential(
+                driveToShoot,
+                lazy(() -> {
+                    shooting = SECOND_SHOOT;
+                    if (shooting) {
+                        return shoot("launching tag " + newTagId, () -> SHOOT_TIME);
+                    }
+                    autoStage = "not shooting (SECOND_SHOOT off), waiting " + SHOOT_TIME + "ms";
+                    return waitMs(SHOOT_TIME);
+                }),
+                lazy(() -> {
+                    if (!shooting) {
+                        return parkFromShoot("no flower, SECOND_SHOOT off");
+                    }
+                    if (lowOnTime()) {
+                        return parkFromShoot("only " + msLeft() + "ms left, skipping flower");
+                    }
+                    if (tagSeenAtMs < EARLY_TAG_MS) {
+                        return flowerThenShootAgain;
+                    }
+                    return flowerThenPark;
+                }));
+        // Tag never seen before time ran low: don't shoot, drive straight through to park.
+        Command noTagPark = sequential(
+                instant(() -> autoStage = "no " + allianceName() + " tag, parking without shooting"),
+                driveToShoot,
+                parkFromShoot("no tag seen"));
+        return sequential(
+                instant(() -> {
+                    watchingForNewTag = true;  // loop() sets newTagId when that tag shows up
+                    autoStage = "waiting for " + allianceName() + " AprilTag";
+                }),
+                waitUntil(() -> newTagId >= 0 || lowOnTime()),
+                instant(() -> {
+                    watchingForNewTag = false;
+                    if (newTagId >= 0) {
+                        tagSeenAtMs = System.currentTimeMillis() - startTime;
+                    }
+                }),
+                lazy(() -> newTagId >= 0 ? shootThenContinue : noTagPark),
+                instant(() -> {
+                    setIntake(0);
+                    autoStage = "parked";
+                })
+        );
+    }
+
+
+    @Override
+    public void stop() {
+        OpModeStorage.autonomousEndPose = follower.pose(); //saves your position in that file
+        limelight.stop();
+    }
+
+    // Before we start watching, just record which tags are visible (shown in telemetry);
+    // after that, look for one of our alliance's tags.
+    private void updateTags() {
+        LLResult result = limelight.getLatestResult();
+        if (result == null || !result.isValid()) {
+            return;
+        }
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+            int id = tag.getFiducialId();
+            if (!watchingForNewTag) {
+                knownTagIds.add(id);
+            } else if (newTagId < 0 && isOurTag(id)) {
+                newTagId = id;
+            }
+        }
+    }
+
+    @Override
+    public void init() {
+        Scheduler.reset();
+        follower = Constants.create(hardwareMap);
+        follower.setPose(startPose);
+        follower.update();
+        Windmill = hardwareMap.get(CRServo.class, "pollenServo1");
+        Windmill2 = hardwareMap.get(CRServo.class, "pollenServo2");
+        Windmill3 = hardwareMap.get(CRServo.class, "nectarServo1");
+        Windmill4 = hardwareMap.get(CRServo.class, "nectarServo2");
+        Windmill.setPower(0);
+        Windmill4.setPower(0);
+        windmillFeeder = new WindmillFeeder(Windmill3, Windmill2);
+        windmillFeeder.stop();
+        // Intake and flower setup, same hardware names as NewGen Driving.
+        intake = hardwareMap.get(DcMotor.class, "intake");
+        intake.setZeroPowerBehavior(BRAKE);
+        rightFlowerIntakeServo = hardwareMap.get(Servo.class, "flowery");
+        leftflowerIntakeServo = hardwareMap.get(Servo.class, "flowey");
+        rightFlowerIntakeServo.setDirection(Servo.Direction.REVERSE);
+        leftflowerIntakeServo.setDirection(Servo.Direction.FORWARD);
+        telemetry.addData(
+                "Speed",
+                "target (%d), min (%d) flower_left (%f), flower_right (%f)",
+                secondLauncherTargetVelocity(),
+                secondLauncherMinVelocity(),
+                leftflowerIntakeServo.getPosition(),
+                rightFlowerIntakeServo.getPosition());
+        telemetry.update();
+
+        rightFlowerIntakeServo.setPosition(flowerHome());
+        leftflowerIntakeServo.setPosition(flowerHome());
+        launcher =hardwareMap.get(DcMotorEx.class, "pollenFlywheel");
+        launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
+        nectarLauncher = hardwareMap.get(DcMotorEx.class, "launcher2");
+        nectarLauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        nectarLauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
+        limelight =hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.setPollRateHz(100);
+        limelight.pipelineSwitch(APRILTAG_PIPELINE);
+        limelight.start();
+//        if (gamepad1.right_bumper) {
+//            long start = System.currentTimeMillis();
+//            while (System.currentTimeMillis() - start < 500) {
+//            }
+//            launcherTargetVelocity += 50;
+//            launcherMinVelocity += 50;
+//            telemetry.addData(
+//                    "Speed",
+//                    "target (%d), min (%d)",
+//                    launcherTargetVelocity,
+//                    launcherMinVelocity);
+//            telemetry.update();
+//        }
+//        if (gamepad1.right_trigger_pressed) {
+//            long start = System.currentTimeMillis();
+//            while (System.currentTimeMillis() - start < 500) {
+//            }
+//            launcherTargetVelocity += 50;
+//            launcherMinVelocity += 50;
+//            telemetry.addData(
+//                    "Speed",
+//                    "target (%d), min (%d)",
+//                    launcherTargetVelocity,
+//                    launcherMinVelocity);
+//            telemetry.update();
+//        }
+    }
+
+    @Override
+    public void init_loop() {
+        updateTags();
+
+        telemetry.addData("Tags already visible", knownTagIds);
+        telemetry.update();
+    }
+
+    @Override
+    public void start() {
+        startTime = System.currentTimeMillis();
+        schedule(autoRoutine());
+    }
+
+    @Override
+    public void loop() {
+        launcher.setVelocity(secondLauncherTargetVelocity());
+        nectarLauncher.setVelocity(nectarTargetVelocity);
+        setIntake(1);
+
+        follower.update();
+        updateTags();
+        Scheduler.execute();
+
+        telemetry.addData("X", follower.pose().x());
+        telemetry.addData("Y", follower.pose().y());
+        telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
+        telemetry.addData("Follower Mode", follower.mode());
+        telemetry.addData("Auto stage", autoStage);
+        telemetry.addData("Time (s)", "%.1f", (System.currentTimeMillis() - startTime) / 1000.0);
+        telemetry.addData("Tags already visible", knownTagIds);
+        telemetry.addData("New tag", newTagId >= 0
+                ? newTagId + " at " + tagSeenAtMs + "ms" + (tagSeenAtMs < EARLY_TAG_MS ? " (early: shoot twice)" : "")
+                : "none");
+
+        if (launching) {
+            // Same check as Driving: pollen launcher up to speed, and the nectar launcher
+            // within the same gap of nectarTargetVelocity.
+            if (launcher.getVelocity() > secondLauncherMinVelocity()
+                    && nectarLauncher.getVelocity() > nectarTargetVelocity - secondLauncherGap()) {
+                telemetry.addData("launch start", "launch_speed_reached");
+                Windmill.setPower(1);
+                windmillFeeder.feed();
+            } else {
+                telemetry.addData("launch start", "launch_speed_not_reached");
+                windmillFeeder.stop();
+            }
+        }
+
+        telemetry.update();
+    }
+}
+
