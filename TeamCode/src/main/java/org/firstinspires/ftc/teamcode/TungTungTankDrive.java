@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -14,7 +15,7 @@ public class TungTungTankDrive extends OpMode {
 
     // Mechanism motors & servos
     private DcMotorEx intake, pollenFlywheel;
-    private Servo pollenServo1, pollenServo2;
+    private CRServo pollenServo1, pollenServo2;
 
     @Override
     public void init() {
@@ -28,15 +29,15 @@ public class TungTungTankDrive extends OpMode {
         // Mechanisms
         intake = hardwareMap.get(DcMotorEx.class, "intake");
         pollenFlywheel = hardwareMap.get(DcMotorEx.class, "pollenFlywheel");
-        pollenServo1 = hardwareMap.get(Servo.class, "servo1");
-        pollenServo2 = hardwareMap.get(Servo.class, "servo2");
+        pollenServo1 = hardwareMap.get(CRServo.class, "pollenServo1");
+        pollenServo2 = hardwareMap.get(CRServo.class, "pollenServo2");
 
         // --- 2. MOTOR DIRECTIONS ---
         // Mecanum drive directions
-        frontLeft.setDirection(DcMotor.Direction.FORWARD);
-        backLeft.setDirection(DcMotor.Direction.FORWARD);
-        frontRight.setDirection(DcMotor.Direction.REVERSE);
-        backRight.setDirection(DcMotor.Direction.REVERSE);
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);
+        backLeft.setDirection(DcMotor.Direction.REVERSE);
+        frontRight.setDirection(DcMotor.Direction.FORWARD);
+        backRight.setDirection(DcMotor.Direction.FORWARD);
 
         // Mechanism directions
         intake.setDirection(DcMotor.Direction.FORWARD);
@@ -81,8 +82,18 @@ public class TungTungTankDrive extends OpMode {
         if (gamepad1.left_bumper) {
             intake.setPower(1);
         } else {
-            intake.setPower(-1);
+            intake.setPower(0);
         }
+
+        pollenServo1.setPower(1);
+
+        if (gamepad1.right_bumper) {
+            pollenServo2.setPower(1);
+        } else {
+            pollenServo2.setPower(0);
+        }
+
+        pollenFlywheel.setVelocity(1160);
 
         // --- TELEMETRY FEEDBACK ---
         telemetry.addData("Motors", "FL (%.2f), BL (%.2f), FR (%.2f), BR (%.2f)",
